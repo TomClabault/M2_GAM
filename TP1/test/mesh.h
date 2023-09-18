@@ -1,84 +1,101 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include "point.h"
+#include "face.h"
+#include "vertex.h"
 
 #include <QOpenGLWidget>
 #include <vector>
 
-class Face
-{
-public:
-    /**
-     * @brief Face
-     * @param a Index of the first vertex of the face
-     * @param b Index of the second vertex of the face
-     * @param fa Index of the face that is opposing the vertex "a"
-     * @param fb Index of the face that is opposing the vertex "b"
-     * @param fc Index of the face that is opposing the vertex "c"
-     */
-    Face(int a, int b, int c, int fa, int fb, int fc) : m_a(a), m_b(b), m_c(c), m_fa(fa), m_fb(fb), m_fc(fc) { }
-
-    int& m_opposing_faces(int index) {return *(&m_fa + index);}
-    int& m_vertices(int index) {return *(&m_a + index);}
-
-    //Vertices of the face
-    int m_a, m_b, m_c;
-
-    //Adjacent faces. The faces are opposing the corresponding vertex:
-    //fa is the face opposing the vertex 'a' (so it's the face that shares the 'bc' line)
-    //...
-    int m_fa, m_fb, m_fc;
-};
-
-class Vertex
-{
-public:
-    Vertex(int adjacent_face_index, Point geometric_coordinates) : m_adjacent_face_index(adjacent_face_index), m_geometric_point(geometric_coordinates) {}
-
-    int get_adjacent_face_index() { return m_adjacent_face_index; }
-    void set_adjacent_face_index(int adjacent_face_index) { m_adjacent_face_index = adjacent_face_index; }
-
-    Point& get_point() { return m_geometric_point; }
-
-private:
-    //Index of a face that contains the current vertex
-    int m_adjacent_face_index;
-
-    Point m_geometric_point;
-};
-
-//** TP : TO MODIFY
-
 class Mesh
 {
 public:
+    struct Iterator_on_faces
+    {
+    public:
+        Iterator_on_faces() { m_mesh = nullptr; };
+        Iterator_on_faces(Mesh& mesh, bool past_the_end);
+        Iterator_on_faces(Mesh& mesh) : m_mesh(&mesh), m_current_face_index(0) , m_past_the_end(false) {}
+
+        Face& operator*();
+
+        friend Mesh::Iterator_on_faces& operator++(Mesh::Iterator_on_faces& operand);
+        friend Mesh::Iterator_on_faces operator++(Mesh::Iterator_on_faces& operand, int dummy);
+
+        friend bool operator ==(const Mesh::Iterator_on_faces& a, const Mesh::Iterator_on_faces& b);
+        friend bool operator !=(const Mesh::Iterator_on_faces& a, const Mesh::Iterator_on_faces& b);
+
+    private:
+
+        Mesh* m_mesh;
+        unsigned long long int m_current_face_index;
+
+        bool m_past_the_end;
+    };
+
+    struct Iterator_on_vertices
+    {
+    public:
+        Iterator_on_vertices() { m_mesh = nullptr; };
+        Iterator_on_vertices(Mesh& mesh, bool past_the_end);
+        Iterator_on_vertices(Mesh& mesh) : m_mesh(&mesh), m_current_vertex_index(0) , m_past_the_end(false) {}
+
+        Vertex& operator*();
+
+        friend Mesh::Iterator_on_vertices& operator++(Mesh::Iterator_on_vertices& operand);
+        friend Mesh::Iterator_on_vertices operator++(Mesh::Iterator_on_vertices& operand, int dummy);
+
+        friend bool operator ==(const Mesh::Iterator_on_vertices& a, const Mesh::Iterator_on_vertices& b);
+        friend bool operator !=(const Mesh::Iterator_on_vertices& a, const Mesh::Iterator_on_vertices& b);
+
+    private:
+        Mesh* m_mesh;
+        unsigned long long int m_current_vertex_index;
+
+        bool m_past_the_end;
+    };
+
+    struct Circulator_on_faces
+    {
+    public:
+        Circulator_on_faces() { m_mesh = nullptr; };
+        Circulator_on_faces(Mesh& mesh, int current_face_index) : m_mesh(&mesh), m_current_face_index(current_face_index) {}
+        Circulator_on_faces(Mesh& mesh, Vertex& vertex) : m_mesh(&mesh), m_vertex_circulating_around(&vertex), m_current_face_index(vertex.get_adjacent_face_index()) {}
+
+        Face& operator*();
+
+        friend Mesh::Circulator_on_faces& operator++(Mesh::Circulator_on_faces& operand);
+        friend Mesh::Circulator_on_faces operator++(Mesh::Circulator_on_faces& operand, int dummy);
+
+        friend bool operator ==(const Mesh::Circulator_on_faces& a, const Mesh::Circulator_on_faces& b);
+        friend bool operator !=(const Mesh::Circulator_on_faces& a, const Mesh::Circulator_on_faces& b);
+
+    private:
+        Mesh* m_mesh;
+        Vertex* m_vertex_circulating_around;
+
+        int m_current_face_index;
+    };
+
     Mesh() {}
     Mesh(std::vector<Face>& faces, std::vector<Vertex>& vertices) : m_faces(faces), m_vertices(vertices) {}
 
-    void add_vertex(const Vertex& vertex)
-    {
-        m_vertices.push_back(vertex);
-    }
+    void add_vertex(const Vertex& vertex);
+
+    Iterator_on_faces faces_begin();
+    Iterator_on_faces faces_past_the_end();
+
+    Iterator_on_vertices vertices_begin();
+    Iterator_on_vertices vertices_past_the_end();
+
+    Circulator_on_faces incident_faces(int vertex_index);
+    Circulator_on_faces incident_faces(Vertex& vertex);
+    Circulator_on_faces incident_faces_past_the_end();
 
     std::vector<Face> m_faces;
     std::vector<Vertex> m_vertices;
     //void drawMesh();
     //void drawMeshWireFrame();
 };
-
-class GeometricWorld //Here used to create a singleton instance
-{
-    QVector<Point> _bBox;  // Bounding box
-public :
-    void load_off(const char* filepath);
-
-  void draw();
-  void drawWireFrame();
-
-  // ** TP Can be extended with further elements;
-  Mesh _mesh;
-};
-
 
 #endif // MESH_H

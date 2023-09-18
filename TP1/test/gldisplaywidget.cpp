@@ -29,7 +29,8 @@ void GLDisplayWidget::initializeGL()
     glEnable(GL_LIGHT0);
     glEnable(GL_COLOR_MATERIAL);
 
-    _geomWorld.load_off("cube_maillage_triangles.off");
+    //_geomWorld.load_off("cube_maillage_triangles.off");
+    _geomWorld.load_off("tetraedre.off");
     // Construction of the GeometricWorld before it is displayed
     // It can also be constructed following a signal (button)
 }

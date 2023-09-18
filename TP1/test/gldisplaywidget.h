@@ -4,7 +4,8 @@
 #include <QOpenGLWidget>
 #include <QtWidgets>
 #include <QTimer>
-#include "mesh.h"  // Model
+
+#include "geometricworld.h"
 
 class GLDisplayWidget : public QOpenGLWidget
 {

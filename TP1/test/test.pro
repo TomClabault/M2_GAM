@@ -15,17 +15,24 @@ TEMPLATE = app
 SOURCES += main.cpp\
     TP1/offreader.cpp \
     TP1/vector.cpp \
+    face.cpp \
+    geometricworld.cpp \
         mainwindow.cpp \
     gldisplaywidget.cpp \
-    mesh.cpp
+    mesh.cpp \
+    point.cpp \
+    vertex.cpp
 
 HEADERS  += mainwindow.h \
     TP1/color.h \
     TP1/offreader.h \
     TP1/vector.h \
+    face.h \
+    geometricworld.h \
     gldisplaywidget.h \
     mesh.h \
-    point.h
+    point.h \
+    vertex.h
 
 FORMS    += mainwindow.ui
 
