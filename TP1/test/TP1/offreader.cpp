@@ -104,7 +104,7 @@ Mesh OffReader::read_off(const char* filepath)
             int local_vertex_index_opposing_current_edge_in_other_face = value_found->second.second;
 
             face.m_fc = other_face_index;
-            mesh.m_faces.at(other_face_index).m_opposing_faces(local_vertex_index_opposing_current_edge_in_other_face) = face_index;
+            mesh.m_faces.at(other_face_index).opposing_face(local_vertex_index_opposing_current_edge_in_other_face) = face_index;
         }
         else
             edges_to_face_and_opposing.insert({key_pair, value_pair});
@@ -125,7 +125,7 @@ Mesh OffReader::read_off(const char* filepath)
             int local_vertex_index_opposing_current_edge_in_other_face = value_found->second.second;
 
             face.m_fa = other_face_index;
-            mesh.m_faces.at(other_face_index).m_opposing_faces(local_vertex_index_opposing_current_edge_in_other_face) = face_index;
+            mesh.m_faces.at(other_face_index).opposing_face(local_vertex_index_opposing_current_edge_in_other_face) = face_index;
         }
         else
             edges_to_face_and_opposing.insert({key_pair, value_pair});
@@ -145,7 +145,7 @@ Mesh OffReader::read_off(const char* filepath)
             int local_vertex_index_opposing_current_edge_in_other_face = value_found->second.second;
 
             face.m_fb = other_face_index;
-            mesh.m_faces.at(other_face_index).m_opposing_faces(local_vertex_index_opposing_current_edge_in_other_face) = face_index;
+            mesh.m_faces.at(other_face_index).opposing_face(local_vertex_index_opposing_current_edge_in_other_face) = face_index;
         }
         else
             edges_to_face_and_opposing.insert({key_pair, value_pair});

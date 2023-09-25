@@ -151,11 +151,116 @@ Mesh::Circulator_on_faces Mesh::incident_faces_past_the_end()
     return Mesh::Circulator_on_faces(*this, -1);
 }
 
+void Mesh::face_split(const int face_index, const Point& new_point)
+{
+
+    Face current_face_copy = m_faces[face_index];
+    Face& new_face0 = m_faces[face_index];
+    Face new_face1, new_face2;
+
+    int new_face1_index = m_faces.size();
+    int new_face2_index = m_faces.size() + 1;
+
+    int face_touching_new_face_0 = current_face_copy.opposing_face(1);
+    int face_touching_new_face_1 = current_face_copy.opposing_face(2);
+    int face_touching_new_face_2 = current_face_copy.opposing_face(0);
+
+    m_vertices.push_back(Vertex(face_index, new_point));
+
+    //The current face we're inserting into is going to become 'face 0' of the
+    //3 new faces created
+    //The new point is always the vertex 0 of the new faces
+    new_face0.m_a = m_vertices.size() - 1;
+    new_face1.m_a = m_vertices.size() - 1;
+    new_face2.m_a = m_vertices.size() - 1;
+
+    new_face0.m_b = current_face_copy.m_c;
+    new_face1.m_b = current_face_copy.m_a;
+    new_face2.m_b = current_face_copy.m_b;
+
+    new_face0.m_c = current_face_copy.m_a;
+    new_face1.m_c = current_face_copy.m_b;
+    new_face2.m_c = current_face_copy.m_c;
 
 
 
+    new_face0.m_fa = face_touching_new_face_0;
+    new_face1.m_fa = face_touching_new_face_1;
+    new_face2.m_fa = face_touching_new_face_2;
+
+    new_face0.m_fb = new_face1_index;
+    new_face1.m_fb = new_face2_index;
+    new_face2.m_fb = face_index;
+
+    new_face0.m_fc = new_face2_index;
+    new_face1.m_fc = face_index;
+    new_face2.m_fc = new_face1_index;
 
 
+
+    int vertex_opposing_new_face_0 = -1, vertex_opposing_new_face_1 = -1, vertex_opposing_new_face_2 = -1;
+
+    if (face_touching_new_face_0 != -1)
+        vertex_opposing_new_face_0 = m_faces[face_touching_new_face_0].find_local_vertex_index_with_opposing_face(face_index);
+    if (face_touching_new_face_1 != -1)
+        vertex_opposing_new_face_1 = m_faces[face_touching_new_face_1].find_local_vertex_index_with_opposing_face(face_index);
+    if (face_touching_new_face_2 != -1)
+        vertex_opposing_new_face_2 = m_faces[face_touching_new_face_2].find_local_vertex_index_with_opposing_face(face_index);
+
+    if (vertex_opposing_new_face_0 != -1)
+        m_faces[face_touching_new_face_0].opposing_face(vertex_opposing_new_face_0) = face_index;
+    if (vertex_opposing_new_face_1 != -1)
+        m_faces[face_touching_new_face_1].opposing_face(vertex_opposing_new_face_1) = new_face1_index;
+    if (vertex_opposing_new_face_2 != -1)
+        m_faces[face_touching_new_face_2].opposing_face(vertex_opposing_new_face_2) = new_face2_index;
+
+    m_faces.push_back(new_face1);
+    m_faces.push_back(new_face2);
+}
+
+void Mesh::edge_flip(const int face_0_index, const int face_1_index)
+{
+    Face face_0_copy = m_faces[face_0_index];
+    Face face_1_copy = m_faces[face_1_index];
+
+    Face& face_0 = m_faces[face_0_index];
+    Face& face_1 = m_faces[face_1_index];
+
+    int local_vertex_on_face_0_opposing_to_face_1 = face_0_copy.find_local_vertex_index_with_opposing_face(face_1_index);
+    int local_vertex_on_face_1_opposing_to_face_0 = face_1_copy.find_local_vertex_index_with_opposing_face(face_0_index);
+
+    int local_vertex1_on_face_0 = (local_vertex_on_face_0_opposing_to_face_1 + 1) % 3;
+    int local_vertex2_on_face_0 = (local_vertex1_on_face_0 + 1) % 3;
+    int local_vertex2_on_face_1 = (local_vertex_on_face_1_opposing_to_face_0 + 1) % 3;
+    int local_vertex1_on_face_1 = (local_vertex2_on_face_1 + 1) % 3;
+
+    face_0.global_index_of_local_vertex_index(local_vertex1_on_face_0) = face_1_copy.global_index_of_local_vertex_index(local_vertex_on_face_1_opposing_to_face_0);
+    face_1.global_index_of_local_vertex_index(local_vertex2_on_face_1) = face_0_copy.global_index_of_local_vertex_index(local_vertex_on_face_0_opposing_to_face_1);
+
+    int local_vertex0_on_face_0 = local_vertex1_on_face_0 - 1;
+    if (local_vertex0_on_face_0 == -1)
+        local_vertex0_on_face_0 = 2;
+
+    int face_2_index = face_0_copy.opposing_face(local_vertex1_on_face_0);
+    int face_3_index = face_1_copy.opposing_face(local_vertex1_on_face_1);
+    face_0.opposing_face(local_vertex0_on_face_0) = face_3_index;
+    face_0.opposing_face((local_vertex0_on_face_0 + 1) % 3) = face_2_index;
+    face_0.opposing_face((local_vertex0_on_face_0 + 2) % 3) = face_1_index;
+
+    int face_4_index = face_0_copy.opposing_face(local_vertex2_on_face_1);
+    int face_5_index = face_0_copy.opposing_face(local_vertex2_on_face_0);
+    face_1.opposing_face(local_vertex1_on_face_1) = face_0_index;
+    face_1.opposing_face((local_vertex1_on_face_1 + 1) % 3) = face_5_index;
+    face_1.opposing_face((local_vertex1_on_face_1 + 2) % 3) = face_4_index;
+
+    Face& face_3 = m_faces[face_3_index];
+    int local_vertex4_on_face_3 = face_3.find_local_vertex_index_with_opposing_face(face_1_index);
+    face_3.opposing_face(local_vertex4_on_face_3) = face_0_index;
+
+    Face& face_5 = m_faces[face_5_index];
+    int local_vertex6_on_face_5 = face_5.find_local_vertex_index_with_opposing_face(face_0_index);
+    face_5.opposing_face(local_vertex6_on_face_5) = face_1_index;
+}
 
 Face& Mesh::Circulator_on_faces::operator*()
 {
@@ -184,7 +289,7 @@ Mesh::Circulator_on_faces& operator++(Mesh::Circulator_on_faces& operand)
 
     int next_vertex_index = (index_of_main_vertex_in_current_face + 1) % 3;
 
-    operand.m_current_face_index = current_face.m_opposing_faces(next_vertex_index);
+    operand.m_current_face_index = current_face.opposing_face(next_vertex_index);
 
     return operand;
 }
@@ -223,8 +328,12 @@ bool operator !=(const Mesh::Circulator_on_faces& a, const Mesh::Circulator_on_f
 
 
 
-
 void Mesh::add_vertex(const Vertex& vertex)
 {
     m_vertices.push_back(vertex);
+}
+
+void Mesh::add_face(const Face& face)
+{
+    m_faces.push_back(face);
 }

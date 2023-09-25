@@ -10,30 +10,25 @@ void glPointDraw(const Point & p) {
 
 void GeometricWorld::load_off(const char* filepath)
 {
-    _mesh = OffReader::read_off(filepath);
+    //_mesh = OffReader::read_off(filepath);
 
-    Mesh::Iterator_on_vertices its;
-    Mesh::Circulator_on_faces cf;
-    for (its = _mesh.vertices_begin();
-         its != _mesh.vertices_past_the_end();
-         ++its)
-    {
-        Mesh::Circulator_on_faces cfbegin
-            = _mesh.incident_faces(*its) ;
-        int cmpt = 0;
-        for (cf=cfbegin, ++cf;
-             cf!=cfbegin;
-             cf++)
-            cmpt++ ;
-        std::cout<< "valence of the vertex" << cmpt << std::endl;
-    }
+    _mesh.add_vertex(Vertex(0, Point(0, 0, 0)));
+    _mesh.add_vertex(Vertex(0, Point(1, 0, 0)));
+    _mesh.add_vertex(Vertex(0, Point(0.5, 0.5, 0)));
 
-//    Mesh::Circulator_on_faces ite = _mesh.incident_faces(0);
-//    while (ite != _mesh.incident_faces_past_the_end())
-//    {
-//        std::cout << *ite << std::endl;
-//        ite++;
-//    }
+    _mesh.add_vertex(Vertex(1, Point(0.5, -0.5, 0)));
+    _mesh.add_vertex(Vertex(2, Point(1.5, 0.25, 0)));
+    _mesh.add_vertex(Vertex(3, Point(-0.5, 0.25, 0)));
+
+    _mesh.add_face(Face(0, 1, 2, 2, 3, 1));
+    _mesh.add_face(Face(0, 3, 1, -1, 0, -1));
+    _mesh.add_face(Face(1, 4, 2, -1, 0, -1));
+    _mesh.add_face(Face(2, 5, 0, -1, 0, -1));
+
+    _mesh.edge_flip(0, 1);
+    _mesh.edge_flip(0, 1);
+    //_mesh.face_split(0, Point(0.5, 0.25, 0));
+    //_mesh.face_split(3, Point(-0.1, 0.25, 0));
 }
 
 //Example with a bBox

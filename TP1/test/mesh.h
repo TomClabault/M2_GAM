@@ -81,6 +81,7 @@ public:
     Mesh(std::vector<Face>& faces, std::vector<Vertex>& vertices) : m_faces(faces), m_vertices(vertices) {}
 
     void add_vertex(const Vertex& vertex);
+    void add_face(const Face &face);
 
     Iterator_on_faces faces_begin();
     Iterator_on_faces faces_past_the_end();
@@ -91,6 +92,9 @@ public:
     Circulator_on_faces incident_faces(int vertex_index);
     Circulator_on_faces incident_faces(Vertex& vertex);
     Circulator_on_faces incident_faces_past_the_end();
+
+    void face_split(const int face_index, const Point& new_point);
+    void edge_flip(const int face_index_1, const int face_index_2);
 
     std::vector<Face> m_faces;
     std::vector<Vertex> m_vertices;
