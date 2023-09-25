@@ -8,6 +8,11 @@ Mesh OffReader::read_off(const char* filepath)
     Mesh mesh;
 
     std::ifstream file(filepath);
+    if (!file.is_open())
+    {
+        std::cout << "Erreur pendant l'ouverture de " << std::string(filepath) << std::endl;
+        std::exit(-1);
+    }
 
     //Skipping the first "OFF" line
     file.ignore(10000000, '\n');

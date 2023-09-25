@@ -14,6 +14,7 @@ public:
     void set_adjacent_face_index(int adjacent_face_index) { m_adjacent_face_index = adjacent_face_index; }
 
     Point& get_point() { return m_geometric_point; }
+    const Point& get_point() const { return m_geometric_point; }
 
     friend std::ostream& operator <<(std::ostream& os, const Vertex& vertex);
 
@@ -23,5 +24,7 @@ private:
 
     Point m_geometric_point;
 };
+
+Vector operator-(const Vertex& a, const Vertex& b);
 
 #endif // VERTEX_H

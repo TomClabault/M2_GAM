@@ -93,6 +93,10 @@ public:
     Circulator_on_faces incident_faces(Vertex& vertex);
     Circulator_on_faces incident_faces_past_the_end();
 
+    double face_area(const Face& face);
+
+    Vector laplacian_mean_curvature(const int vertex_index);
+
     void face_split(const int face_index, const Point& new_point);
     void edge_flip(const int face_index_1, const int face_index_2);
 

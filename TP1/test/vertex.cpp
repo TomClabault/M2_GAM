@@ -8,3 +8,8 @@ std::ostream& operator <<(std::ostream& os, const Vertex& vertex)
 
     return os;
 }
+
+Vector operator-(const Vertex &a, const Vertex &b)
+{
+    return a.get_point() - b.get_point();
+}

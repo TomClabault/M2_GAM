@@ -12,3 +12,19 @@ std::ostream& operator<<(std::ostream& os, const Point& point)
     return os;
 }
 
+float Point::orientation_test(const Point &a, const Point &b, const Point &c)
+{
+    Vector ab = b - a;
+    Vector ac = c - a;
+
+    Vector crossed = cross(ab, ac);
+
+    return crossed.z;
+}
+
+int Point::is_point_in_triangle(const Point &point_to_test, const Point &a, const Point &b, const Point &c)
+{
+    return (Point::orientation_test(a, b, point_to_test) > 0
+         && Point::orientation_test(b, c, point_to_test) > 0
+         && Point::orientation_test(c, a, point_to_test) > 0) * 2 - 1;
+}

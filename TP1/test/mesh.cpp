@@ -1,5 +1,11 @@
 #include "mesh.h"
 
+//Laplacien
+/**
+    TODO laplacien
+    TODO faire attention au point quand on flip une edge que un point qui avait pour face incidente le point 0, point maintenant sur la face 1 ou l'inverse (pliutôt ql'inverse potentiellement)
+ */
+
 Mesh::Iterator_on_faces::Iterator_on_faces(Mesh& mesh, bool past_the_end)
 {
     m_mesh = &mesh;
@@ -149,6 +155,65 @@ Mesh::Circulator_on_faces Mesh::incident_faces(Vertex& vertex)
 Mesh::Circulator_on_faces Mesh::incident_faces_past_the_end()
 {
     return Mesh::Circulator_on_faces(*this, -1);
+}
+
+double Mesh::face_area(const Face &face)
+{
+    Vector face_ab = m_vertices[face.m_b] - m_vertices[face.m_a];
+    Vector face_ac = m_vertices[face.m_c] - m_vertices[face.m_a];
+
+    return length(cross(face_ab, face_ac)) / 2;
+}
+
+#include <iostream>
+Vector Mesh::laplacian_mean_curvature(const int vertex_index)
+{
+    Vertex& vertex = m_vertices[vertex_index];
+    const Point& vertex_point = vertex.get_point();
+    Mesh::Circulator_on_faces circulator = Mesh::Circulator_on_faces(*this, vertex);
+    Mesh::Circulator_on_faces circulator_begin = circulator;
+
+    Vector laplacien_sum(0, 0, 0);
+    double neighbor_faces_area_sum = 0.0;
+    do
+    {
+        Face& neighbor_face1 = *circulator;
+        neighbor_faces_area_sum += this->face_area(neighbor_face1) / 3;
+
+        int local_index_in_face_of_vertex_index = neighbor_face1.local_index_of_global_vertex_index(vertex_index);
+        int neighbor_point_global_index = neighbor_face1.global_index_of_local_vertex_index((local_index_in_face_of_vertex_index + 2) % 3);
+        Vertex& neighbor_vertex = m_vertices[neighbor_point_global_index];
+        Point& neighbor_point = neighbor_vertex.get_point();
+
+        Face& neighbor_face2 = m_faces[neighbor_face1.opposing_face(local_index_in_face_of_vertex_index + 1) % 3];
+        int alpha_point_global_index = neighbor_face1.global_index_of_local_vertex_index((local_index_in_face_of_vertex_index + 1) % 3);
+        int beta_point_global_index = neighbor_face2.global_index_of_local_vertex_index((neighbor_face2.local_index_of_global_vertex_index(vertex_index) + 2) % 3);
+
+        Point alpha_point = m_vertices[alpha_point_global_index].get_point();
+        Point beta_point = m_vertices[beta_point_global_index].get_point();
+
+        Vector alpha_edge_1 = normalize(neighbor_point - alpha_point);
+        Vector alpha_edge_2 = normalize(vertex_point - alpha_point);
+        double alpha_cos = dot(alpha_edge_1, alpha_edge_2);
+        double alpha_sin = length(cross(alpha_edge_1, alpha_edge_2));
+        double cotangent_alpha = alpha_cos / alpha_sin;
+
+        Vector beta_edge_1 = normalize(vertex_point - beta_point);
+        Vector beta_edge_2 = normalize(neighbor_point - beta_point);
+        double beta_cos = dot(beta_edge_1, beta_edge_2);
+        double beta_sin = length(cross(beta_edge_1, beta_edge_2));
+        double cotangent_beta = beta_cos / beta_sin;
+
+        Vector difference = neighbor_point - vertex_point;
+
+        Vector laplacien = (cotangent_alpha + cotangent_beta) * difference;
+
+        laplacien_sum += laplacien;
+
+        circulator++;
+    } while (circulator != circulator_begin);
+
+    return laplacien_sum / (2 * neighbor_faces_area_sum);
 }
 
 void Mesh::face_split(const int face_index, const Point& new_point)
