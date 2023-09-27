@@ -28,5 +28,6 @@ double length(const Vector& vec);
 Vector normalize(const Vector& vec);
 double dot (const Vector& a, const Vector& b);
 Vector cross(const Vector& a, const Vector& b);
+Vector abs(const Vector& vec);
 
 #endif // VECTOR_H

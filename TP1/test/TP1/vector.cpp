@@ -56,3 +56,8 @@ Vector Vector::operator+=(const Vector &other)
 
     return *this;
 }
+
+Vector abs(const Vector &vec)
+{
+    return Vector(std::abs(vec.x), std::abs(vec.y), std::abs(vec.z));
+}

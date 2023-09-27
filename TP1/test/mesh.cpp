@@ -165,7 +165,6 @@ double Mesh::face_area(const Face &face)
     return length(cross(face_ab, face_ac)) / 2;
 }
 
-#include <iostream>
 Vector Mesh::laplacian_mean_curvature(const int vertex_index)
 {
     Vertex& vertex = m_vertices[vertex_index];
@@ -177,16 +176,16 @@ Vector Mesh::laplacian_mean_curvature(const int vertex_index)
     double neighbor_faces_area_sum = 0.0;
     do
     {
-        Face& neighbor_face1 = *circulator;
-        neighbor_faces_area_sum += this->face_area(neighbor_face1) / 3;
+        Face& current_circulator_face = *circulator;
+        neighbor_faces_area_sum += this->face_area(current_circulator_face) / 3;
 
-        int local_index_in_face_of_vertex_index = neighbor_face1.local_index_of_global_vertex_index(vertex_index);
-        int neighbor_point_global_index = neighbor_face1.global_index_of_local_vertex_index((local_index_in_face_of_vertex_index + 2) % 3);
+        int local_index_in_face_of_vertex_index = current_circulator_face.local_index_of_global_vertex_index(vertex_index);
+        int neighbor_point_global_index = current_circulator_face.global_index_of_local_vertex_index((local_index_in_face_of_vertex_index + 2) % 3);
         Vertex& neighbor_vertex = m_vertices[neighbor_point_global_index];
         Point& neighbor_point = neighbor_vertex.get_point();
 
-        Face& neighbor_face2 = m_faces[neighbor_face1.opposing_face(local_index_in_face_of_vertex_index + 1) % 3];
-        int alpha_point_global_index = neighbor_face1.global_index_of_local_vertex_index((local_index_in_face_of_vertex_index + 1) % 3);
+        Face& neighbor_face2 = m_faces[current_circulator_face.opposing_face((local_index_in_face_of_vertex_index + 1) % 3)];
+        int alpha_point_global_index = current_circulator_face.global_index_of_local_vertex_index((local_index_in_face_of_vertex_index + 1) % 3);
         int beta_point_global_index = neighbor_face2.global_index_of_local_vertex_index((neighbor_face2.local_index_of_global_vertex_index(vertex_index) + 2) % 3);
 
         Point alpha_point = m_vertices[alpha_point_global_index].get_point();

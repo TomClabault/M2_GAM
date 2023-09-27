@@ -14,9 +14,6 @@ Mesh OffReader::read_off(const char* filepath)
         std::exit(-1);
     }
 
-    //Skipping the first "OFF" line
-    file.ignore(10000000, '\n');
-
     //The second line of the file is
     //X Y Z
     //X = nb vertices
@@ -24,9 +21,25 @@ Mesh OffReader::read_off(const char* filepath)
     //Z = nb edges
     int trash;
     int nb_vertices, nb_faces;
-    file >> nb_vertices;
-    file >> nb_faces;
-    file >> trash;//We don't need the number of edges
+
+    std::string buffer;
+
+    //Reading the first line
+    std::getline(file, buffer);
+    if (buffer != "OFF")
+    {
+        //If the first line isn't the "OFF" line, this means that we just read the number of vertices / faces
+        //so we're storing them in the variables
+        sscanf(buffer.c_str(), "%d %d %d", &nb_vertices, &nb_faces, &trash);
+    }
+    else
+    {
+        //If we just read the "OFF" header, that's good, this means that we just skipped it
+        //and we can now read the number of vertices / faces
+        file >> nb_vertices;
+        file >> nb_faces;
+        file >> trash;//We don't need the number of edges
+    }
 
     mesh.m_vertices.reserve(nb_vertices);
     mesh.m_faces.reserve(nb_faces);
