@@ -194,13 +194,21 @@ Vector Mesh::laplacian_mean_curvature(const int vertex_index)
         Vector alpha_edge_1 = normalize(neighbor_point - alpha_point);
         Vector alpha_edge_2 = normalize(vertex_point - alpha_point);
         double alpha_cos = dot(alpha_edge_1, alpha_edge_2);
-        Vector alpha_cross = cross(alpha_edge_1, alpha_edge_2);
-        double alpha_sin = length(alpha_cross) * ;
+        //Vector alpha_cross = cross(alpha_edge_1, alpha_edge_2);
+        //Vector alpha_face_normal = cross(alpha_edge_1, alpha_edge_2);
+        //float alpha_cross_sign = dot(alpha_cross, alpha_face_normal);
+        //double alpha_sin = length(alpha_cross) * alpha_cross_sign;
+        //double alpha_sin = length(alpha_cross);
+        double alpha_sin = length(cross(alpha_edge_1, alpha_edge_2));
         double cotangent_alpha = alpha_cos / alpha_sin;
 
         Vector beta_edge_1 = normalize(vertex_point - beta_point);
         Vector beta_edge_2 = normalize(neighbor_point - beta_point);
         double beta_cos = dot(beta_edge_1, beta_edge_2);
+        //Vector beta_cross = cross(beta_edge_1, beta_edge_2);
+        //Vector beta_face_normal = cross()
+        //float beta_sign = dot(beta_cross, beta_face_normal);
+        //double beta_sin = length(beta_cross) * beta_sign;
         double beta_sin = length(cross(beta_edge_1, beta_edge_2));
         double cotangent_beta = beta_cos / beta_sin;
 

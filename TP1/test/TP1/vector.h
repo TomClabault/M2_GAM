@@ -12,8 +12,10 @@ class Vector
 public:
     Vector() : x(0), y(0), z(0) {}
     Vector(double x, double y, double z) : x(x), y(y), z(z) {}
+    Vector(double a) : x(a), y(a), z(a) {}
 
     Vector operator+=(const Vector& other);
+    Vector operator/=(const Vector& other);
 
     double x, y, z;
 };
@@ -29,5 +31,6 @@ Vector normalize(const Vector& vec);
 double dot (const Vector& a, const Vector& b);
 Vector cross(const Vector& a, const Vector& b);
 Vector abs(const Vector& vec);
+Vector max(const Vector& a, const Vector& b);
 
 #endif // VECTOR_H

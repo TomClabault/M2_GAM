@@ -13,6 +13,15 @@ Vector operator/(const Vector& vec, double k)
     return Vector(vec.x / k, vec.y / k, vec.z / k);
 }
 
+Vector Vector::operator/=(const Vector& vec)
+{
+    x /= vec.x;
+    y /= vec.y;
+    z /= vec.z;
+
+    return *this;
+}
+
 Vector operator*(const Vector& vec, double k)
 {
     return Vector(vec.x * k, vec.y * k, vec.z * k);
@@ -60,4 +69,9 @@ Vector Vector::operator+=(const Vector &other)
 Vector abs(const Vector &vec)
 {
     return Vector(std::abs(vec.x), std::abs(vec.y), std::abs(vec.z));
+}
+
+Vector max(const Vector &a, const Vector &b)
+{
+    return Vector(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
 }

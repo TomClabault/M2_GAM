@@ -27,12 +27,18 @@ void GeometricWorld::precompute_mesh_curvature()
 {
     m_precomputed_curvatures.resize(_mesh.m_vertices.size());
 
+    Vector max_curvature = Vector(std::numeric_limits<double>::min());
     for (int i = 0; i < _mesh.m_vertices.size(); i++)
     {
-        Vector curvature = normalize(_mesh.laplacian_mean_curvature(i)) * 0.5 + 0.5;
+        //Vector curvature = normalize(_mesh.laplacian_mean_curvature(i)) * 0.5 + 0.5;
+        Vector curvature = length(_mesh.laplacian_mean_curvature(i));
+        max_curvature = max(max_curvature, curvature);
 
         m_precomputed_curvatures[i] = curvature;
     }
+
+    for (Vector& curvature : m_precomputed_curvatures)
+        curvature /= max_curvature;
 }
 
 //Example with a bBox
