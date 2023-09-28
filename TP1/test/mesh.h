@@ -97,8 +97,11 @@ public:
 
     Vector laplacian_mean_curvature(const int vertex_index);
 
+    Point barycenter_of_face(const Face& face) const;
+
     void face_split(const int face_index, const Point& new_point);
     void edge_flip(const int face_index_1, const int face_index_2);
+    void insert_point_2D(const Point& point);
 
     std::vector<Face> m_faces;
     std::vector<Vertex> m_vertices;

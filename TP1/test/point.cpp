@@ -24,7 +24,14 @@ float Point::orientation_test(const Point &a, const Point &b, const Point &c)
 
 int Point::is_point_in_triangle(const Point &point_to_test, const Point &a, const Point &b, const Point &c)
 {
-    return (Point::orientation_test(a, b, point_to_test) > 0
-         && Point::orientation_test(b, c, point_to_test) > 0
-         && Point::orientation_test(c, a, point_to_test) > 0) * 2 - 1;
+    float first_edge = Point::orientation_test(a, b, point_to_test);
+    float second_edge = Point::orientation_test(b, c, point_to_test);
+    float third_edge = Point::orientation_test(c, a, point_to_test);
+
+    if (first_edge == 0 || second_edge == 0 || third_edge == 0)
+        return 0;
+    else
+        return (first_edge > 0
+             && second_edge > 0
+             && third_edge > 0) * 2 - 1;
 }

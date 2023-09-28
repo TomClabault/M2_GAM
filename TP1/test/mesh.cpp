@@ -1,4 +1,5 @@
 #include "mesh.h"
+#include "segment.h"
 
 //Laplacien
 /**
@@ -224,6 +225,11 @@ Vector Mesh::laplacian_mean_curvature(const int vertex_index)
     return laplacien_sum / (2 * neighbor_faces_area_sum);
 }
 
+Point Mesh::barycenter_of_face(const Face &face) const
+{
+    return (m_vertices[face.m_a].get_point() + m_vertices[face.m_b].get_point() + m_vertices[face.m_c].get_point()) / 3;
+}
+
 void Mesh::face_split(const int face_index, const Point& new_point)
 {
 
@@ -413,6 +419,50 @@ void Mesh::edge_flip(const int face_0_index, const int face_1_index)
         vertex0_on_face_1.set_adjacent_face_index(face_1_index);
     else //was_pointing_to_face_1
         vertex0_on_face_1.set_adjacent_face_index(face_0_index);
+}
+
+void Mesh::insert_point_2D(const Point &point)
+{
+    bool is_inside_triangulation = false;
+
+    //Determining whether the point that we want to insert is inside the triangulation or not
+    Face& arbitrary_start_face = m_faces[0];
+    Point start_face_barycenter = barycenter_of_face(arbitrary_start_face);
+    Segment from_to_segment(start_face_barycenter, point);
+
+    int current_face_index = 0;
+    Face& current_face = arbitrary_start_face;
+    for (int i = 0; i < 3; i++)
+    {
+        Point segment_point_a = m_vertices[current_face.global_index_of_local_vertex_index(i)].get_point();
+        Point segment_point_b = m_vertices[current_face.global_index_of_local_vertex_index((i + 1) % 3)].get_point();
+
+        Segment edge = Segment(segment_point_a, segment_point_b);
+        if (edge.intersect(from_to_segment))
+        {
+            current_face_index = current_face.opposing_face((i + 2) % 3);
+            current_face = m_faces[current_face_index];
+
+            i = 0;
+        }
+    }
+
+    Point a, b, c;
+    a = m_vertices[current_face.m_a].get_point();
+    b = m_vertices[current_face.m_b].get_point();
+    c = m_vertices[current_face.m_c].get_point();
+
+    if (Point::is_point_in_triangle(point, a, b, c))
+        face_split(current_face_index, point);
+    else
+    {
+        //We're going to have to add the point outside of the convex hull of the current
+        //mesh
+
+        //TODO parcourir les aretes au bord du mesh et voir si elles sont visibles par le point a inserer
+
+        //DO WE NEED INFINITE FACES TO FIND THE EDGES THAT ARE AT THE BOUNDARY OF THE MESH ?
+    }
 }
 
 Face& Mesh::Circulator_on_faces::operator*()
