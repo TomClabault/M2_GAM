@@ -333,6 +333,86 @@ void Mesh::edge_flip(const int face_0_index, const int face_1_index)
     Face& face_5 = m_faces[face_5_index];
     int local_vertex6_on_face_5 = face_5.find_local_vertex_index_with_opposing_face(face_0_index);
     face_5.opposing_face(local_vertex6_on_face_5) = face_1_index;
+
+    int global_index_of_vertex2_on_face_0 = face_0_copy.global_index_of_local_vertex_index(local_vertex2_on_face_0);
+    int global_index_of_vertex0_on_face_1 = face_1_copy.global_index_of_local_vertex_index(local_vertex1_on_face_1);
+    Vertex& vertex2_on_face_0 = m_vertices[global_index_of_vertex2_on_face_0];
+    Vertex& vertex0_on_face_1 = m_vertices[global_index_of_vertex0_on_face_1];
+
+    //If the first vertex on the edge between the face that have been flipped was pointing to one of the two
+    //faces, we're going to have to check whether the face that it was pointing to is still adjacent to the vertex
+    bool was_pointing_to_face_0 = false;
+    bool was_pointing_to_face_1 = false;
+    if (vertex2_on_face_0.get_adjacent_face_index() == face_0_index)
+    {
+        was_pointing_to_face_0 = true;
+        //We're going to update the adjacent face pointed to by the vertices that composED the edge before the flip
+        //before now that the faces are flipped, the face pointed to by the vertex may not be adjacent anymore
+
+        //Looking at the vertices of the face 0
+        for (int i = 0; i < 3; i++)
+        {
+            if(face_0.global_index_of_local_vertex_index(i) == global_index_of_vertex2_on_face_0)
+                //We found the vertex on the flipped face so there's nothing to update, the vertex is still
+                //adjacent to the flipped face
+                return;
+        }
+
+        //We didn't find the vertex on the flipped face. This means
+    }
+    else if (vertex2_on_face_0.get_adjacent_face_index() == face_1_index)
+    {
+        was_pointing_to_face_1 = true;
+
+        for (int i = 0; i < 3; i++)
+            if(face_1.global_index_of_local_vertex_index(i) == global_index_of_vertex2_on_face_0)
+                return;
+    }
+
+    if (was_pointing_to_face_0)
+        //Because the face 0 is no longer adjacent the vertex, this means that the vertex has to be pointing
+        //to the other face
+        vertex2_on_face_0.set_adjacent_face_index(face_1_index);
+    else //was_pointing_to_face_1
+        vertex2_on_face_0.set_adjacent_face_index(face_0_index);
+
+
+
+    //Same check for the other vertex of the edge that was flipped
+    was_pointing_to_face_0 = false;
+    was_pointing_to_face_1 = false;
+    if (vertex0_on_face_1.get_adjacent_face_index() == face_0_index)
+    {
+        was_pointing_to_face_0 = true;
+        //We're going to update the adjacent face pointed to by the vertices that composED the edge before the flip
+        //before now that the faces are flipped, the face pointed to by the vertex may not be adjacent anymore
+
+        //Looking at the vertices of the face 0
+        for (int i = 0; i < 3; i++)
+        {
+            if(face_0.global_index_of_local_vertex_index(i) == global_index_of_vertex0_on_face_1)
+                //We found the vertex on the flipped face so there's nothing to update, the vertex is still
+                //adjacent to the flipped face
+                return;
+        }
+
+        //We didn't find the vertex on the flipped face. This means
+    }
+    else if (vertex0_on_face_1.get_adjacent_face_index() == face_1_index)
+    {
+        was_pointing_to_face_1 = true;
+
+        for (int i = 0; i < 3; i++)
+            if(face_1.global_index_of_local_vertex_index(i) == global_index_of_vertex0_on_face_1)
+                return;
+    }
+
+    if (was_pointing_to_face_0)
+        //Because the face 0 is no longer adjacent the vertex, this means that the vertex has to be pointing
+        //to the other face
+        vertex0_on_face_1.set_adjacent_face_index(face_1_index);
+    else //was_pointing_to_face_1
+        vertex0_on_face_1.set_adjacent_face_index(face_0_index);
 }
 
 Face& Mesh::Circulator_on_faces::operator*()
