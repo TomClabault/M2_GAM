@@ -461,14 +461,120 @@ void Mesh::insert_point_2D(const Point &point)
 
 void Mesh::compute_convex_hull_edges()
 {
-    for (Face& face : m_faces)
+    for (int face_index = 0; face_index < m_faces.size(); face_index++)
     {
+        Face& face = m_faces[face_index];
+
         if (face.m_fa == -1)
             m_convex_hull_edges.push_back(std::make_pair(face.m_b, face.m_c));
         if (face.m_fb == -1)
-            m_convex_hull_edges.push_back(std::make_pair(face.m_a, face.m_c));
+            m_convex_hull_edges.push_back(std::make_pair(face.m_c, face.m_a));
         if (face.m_fc == -1)
             m_convex_hull_edges.push_back(std::make_pair(face.m_a, face.m_b));
+        m_convex_hull_edges_faces.push_back(face_index);
+    }
+}
+
+void Mesh::insert_outside_convex_hull_2D(const Point &point)
+{
+    Vertex new_vertex = Vertex(m_faces.size(), point);
+    int new_vertex_index = m_vertices.size();
+    m_vertices.push_back(new_vertex);
+
+    //[global vertex index of new edge 1, global vertex index of new edge 1] -> [global vertex index to update, face index of vertex to update]
+    std::map<std::pair<int, int>, std::pair<int, int>> new_edges_to_vertex_to_update_and_face;
+    //[global vertex index of new edge 1, global vertex index of new edge 1] -> is the edge part of the convex hull
+    std::map<std::pair<int, int>, bool> part_of_new_convex_hull;
+    //Face associated to the new edges that are now part of  the convex hull
+    std::vector<int> part_of_new_convex_hull_associated_face;
+
+    std::vector<std::list<std::pair<int, int>>::iterator> convex_hull_edges_to_remove;
+    std::vector<std::list<int>::iterator> convex_hull_edges_faces_to_remove;
+
+    int edge_index = 0;
+    auto convex_hull_edge_ite = m_convex_hull_edges.begin();
+    auto convex_hull_edge_face_ite = m_convex_hull_edges_faces.begin();
+    for (; convex_hull_edge_ite != m_convex_hull_edges.end();
+           convex_hull_edge_ite++, edge_index++)
+    {
+        std::pair<int, int> convex_hull_edge = *convex_hull_edge_ite;
+        int convex_hull_edge_face_index = *convex_hull_edge_face_ite;
+
+        Point edge_point1 = m_vertices[convex_hull_edge.first].get_point();
+        Point edge_point2 = m_vertices[convex_hull_edge.second].get_point();
+
+        //If the edge is visible from the point we want to insert
+        if (Point::orientation_test(point, edge_point2, edge_point1) > 0)
+        {
+            Face new_face = Face(new_vertex_index, convex_hull_edge.first, convex_hull_edge.second, convex_hull_edge_face_index, -1, -1);
+            int new_face_index = m_faces.size();
+            m_faces.push_back(new_face);
+
+            convex_hull_edges_to_remove.push_back(convex_hull_edge_ite);
+            convex_hull_edges_faces_to_remove.push_back(convex_hull_edge_face_ite);
+
+            std::pair<int, int> new_edge_1, new_edge_2;
+            new_edge_1 = std::make_pair(new_vertex_index < convex_hull_edge.first ? new_vertex_index : convex_hull_edge.first,
+                                        new_vertex_index < convex_hull_edge.first ? convex_hull_edge.first : new_vertex_index);
+            new_edge_2 = std::make_pair(new_vertex_index < convex_hull_edge.second ? new_vertex_index : convex_hull_edge.second,
+                                        new_vertex_index < convex_hull_edge.second ? convex_hull_edge.second : new_vertex_index);
+
+            auto edge_1_find = new_edges_to_vertex_to_update_and_face.find(new_edge_1);
+            if (edge_1_find != new_edges_to_vertex_to_update_and_face.end())
+            {
+                //This edge has already been created before and we just created a face along
+                //that edge so we will set to opposite face of the vertex to update
+                Face& opposing_vertex_face = m_faces[edge_1_find->second.second];
+                opposing_vertex_face.opposing_face(opposing_vertex_face.local_index_of_global_vertex_index(edge_1_find->second.first)) = new_face_index;
+
+                part_of_new_convex_hull.find(new_edge_1)->second = false;
+                part_of_new_convex_hull_associated_face.push_back(new_face_index);
+            }
+            else
+            {
+                new_edges_to_vertex_to_update_and_face.insert(std::make_pair(new_edge_1, std::make_pair(convex_hull_edge.second, new_face_index)));
+                part_of_new_convex_hull.insert(std::make_pair(new_edge_1, true));
+            }
+
+            //Same for the other new edge
+            auto edge_2_find = new_edges_to_vertex_to_update_and_face.find(new_edge_2);
+            if (edge_2_find != new_edges_to_vertex_to_update_and_face.end())
+            {
+                Face& opposing_vertex_face = m_faces[edge_2_find->second.second];
+                opposing_vertex_face.opposing_face(opposing_vertex_face.local_index_of_global_vertex_index(edge_2_find->second.first)) = new_face_index;
+
+                part_of_new_convex_hull.find(new_edge_2)->second = false;
+                part_of_new_convex_hull_associated_face.push_back(new_face_index);
+            }
+            else
+            {
+                new_edges_to_vertex_to_update_and_face.insert(std::make_pair(new_edge_2, std::make_pair(convex_hull_edge.second, new_face_index)));
+                part_of_new_convex_hull.insert(std::make_pair(new_edge_2, true));
+            }
+        }
+    }
+
+    //Removing the edges that are not part of the convex hull anymore
+    for (auto& convex_hull_edge_to_remove : convex_hull_edges_to_remove)
+        m_convex_hull_edges.remove(*convex_hull_edge_to_remove);
+
+    //And the associated faces
+    for (auto& convex_hull_edge_face_to_remove : convex_hull_edges_faces_to_remove)
+        m_convex_hull_edges_faces.remove(*convex_hull_edge_face_to_remove);
+
+    //Adding the new edges that are now part of the convex hull
+    int index = 0;
+    for (auto new_edge : part_of_new_convex_hull)
+    {
+        if (new_edge.second == true)
+        {
+            m_convex_hull_edges.push_back(new_edge.first);
+
+            //And the associated face
+            m_convex_hull_edges_faces.push_back(part_of_new_convex_hull_associated_face[index]);
+        }
+
+        index++;
     }
 }
 
@@ -551,4 +657,9 @@ void Mesh::add_face(const Face& face)
 void Mesh::push_convex_hull_edge(int index_vertex1, int index_vertex2)
 {
     m_convex_hull_edges.push_back(std::make_pair(index_vertex1, index_vertex2));
+}
+
+void Mesh::push_convex_hull_edge_face(int face_index)
+{
+    m_convex_hull_edges_faces.push_back(face_index);
 }

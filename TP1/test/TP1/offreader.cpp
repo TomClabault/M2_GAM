@@ -174,6 +174,7 @@ Mesh OffReader::read_off(const char* filepath)
             mesh.push_convex_hull_edge(face.m_a, face.m_c);
         if (face.m_fc == -1)
             mesh.push_convex_hull_edge(face.m_a, face.m_b);
+        mesh.push_convex_hull_edge_face(face_index);
     }
 
     return mesh;

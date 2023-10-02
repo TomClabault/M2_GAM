@@ -19,15 +19,17 @@ void GeometricWorld::load_off(const char* filepath)
     _mesh.add_vertex(Vertex(0, Point(1, 0, 0)));
     _mesh.add_vertex(Vertex(0, Point(0.5, 0.5, 0)));
     _mesh.add_vertex(Vertex(1, Point(1.5, 0.25, 0)));
-    _mesh.add_vertex(Vertex(2, Point(-1.5, 0.25, 0)));
+    _mesh.add_vertex(Vertex(2, Point(-0.5, 0.25, 0)));
 
     _mesh.add_face(Face(0, 1, 2, 1, 2, -1));
     _mesh.add_face(Face(1, 3, 2, -1, 0, -1));
-    _mesh.add_face(Face(0, 1, 4, -1, -1, 0));
+    _mesh.add_face(Face(0, 2, 4, -1, -1, 0));
 
     _mesh.compute_convex_hull_edges();
 
-    precompute_mesh_curvature();
+    _mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0));
+
+    //precompute_mesh_curvature();
 }
 
 void GeometricWorld::precompute_mesh_curvature()
@@ -47,6 +49,8 @@ void GeometricWorld::precompute_mesh_curvature()
         curvature /= max_curvature;
 }
 
+#define COLOR_CURVATURE 0
+
 //Example with a bBox
 void GeometricWorld::draw()
 {
@@ -58,6 +62,7 @@ void GeometricWorld::draw()
         Point& vertex_c = _mesh.m_vertices.at(face.m_c).get_point();
 
         glBegin(GL_TRIANGLES);
+#if COLOR_CURVATURE
         Vector& curvature_a = m_precomputed_curvatures[face.m_a];
         glColor3d(curvature_a.x, curvature_a.y, curvature_a.z);
         glPointDraw(vertex_a);
@@ -69,6 +74,16 @@ void GeometricWorld::draw()
         Vector& curvature_c = m_precomputed_curvatures[face.m_c];
         glColor3d(curvature_c.x, curvature_c.y, curvature_c.z);
         glPointDraw(vertex_c);
+#else
+        glColor3d(1, 0, 0);
+        glPointDraw(vertex_a);
+
+        glColor3d(0, 1, 0);
+        glPointDraw(vertex_b);
+
+        glColor3d(0, 0, 1);
+        glPointDraw(vertex_c);
+#endif
 
         glEnd();
     }
