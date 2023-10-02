@@ -348,7 +348,6 @@ void Mesh::edge_flip(const int face_0_index, const int face_1_index)
     //If the first vertex on the edge between the face that have been flipped was pointing to one of the two
     //faces, we're going to have to check whether the face that it was pointing to is still adjacent to the vertex
     bool was_pointing_to_face_0 = false;
-    bool was_pointing_to_face_1 = false;
     if (vertex2_on_face_0.get_adjacent_face_index() == face_0_index)
     {
         was_pointing_to_face_0 = true;
@@ -368,8 +367,6 @@ void Mesh::edge_flip(const int face_0_index, const int face_1_index)
     }
     else if (vertex2_on_face_0.get_adjacent_face_index() == face_1_index)
     {
-        was_pointing_to_face_1 = true;
-
         for (int i = 0; i < 3; i++)
             if(face_1.global_index_of_local_vertex_index(i) == global_index_of_vertex2_on_face_0)
                 return;
@@ -386,7 +383,6 @@ void Mesh::edge_flip(const int face_0_index, const int face_1_index)
 
     //Same check for the other vertex of the edge that was flipped
     was_pointing_to_face_0 = false;
-    was_pointing_to_face_1 = false;
     if (vertex0_on_face_1.get_adjacent_face_index() == face_0_index)
     {
         was_pointing_to_face_0 = true;
@@ -406,8 +402,6 @@ void Mesh::edge_flip(const int face_0_index, const int face_1_index)
     }
     else if (vertex0_on_face_1.get_adjacent_face_index() == face_1_index)
     {
-        was_pointing_to_face_1 = true;
-
         for (int i = 0; i < 3; i++)
             if(face_1.global_index_of_local_vertex_index(i) == global_index_of_vertex0_on_face_1)
                 return;
@@ -462,6 +456,19 @@ void Mesh::insert_point_2D(const Point &point)
         //TODO parcourir les aretes au bord du mesh et voir si elles sont visibles par le point a inserer
 
         //DO WE NEED INFINITE FACES TO FIND THE EDGES THAT ARE AT THE BOUNDARY OF THE MESH ?
+    }
+}
+
+void Mesh::compute_convex_hull_edges()
+{
+    for (Face& face : m_faces)
+    {
+        if (face.m_fa == -1)
+            m_convex_hull_edges.push_back(std::make_pair(face.m_b, face.m_c));
+        if (face.m_fb == -1)
+            m_convex_hull_edges.push_back(std::make_pair(face.m_a, face.m_c));
+        if (face.m_fc == -1)
+            m_convex_hull_edges.push_back(std::make_pair(face.m_a, face.m_b));
     }
 }
 
@@ -539,4 +546,9 @@ void Mesh::add_vertex(const Vertex& vertex)
 void Mesh::add_face(const Face& face)
 {
     m_faces.push_back(face);
+}
+
+void Mesh::push_convex_hull_edge(int index_vertex1, int index_vertex2)
+{
+    m_convex_hull_edges.push_back(std::make_pair(index_vertex1, index_vertex2));
 }

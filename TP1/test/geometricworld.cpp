@@ -12,13 +12,20 @@ void GeometricWorld::load_off(const char* filepath)
 {
     //_mesh = OffReader::read_off(filepath);
     //std::cout << std::filesystem::current_path() << std::endl;
-    _mesh = OffReader::read_off("cube_maillage_triangles.off");
+    //_mesh = OffReader::read_off("cube_maillage_triangles.off");
     //_mesh = OffReader::read_off("queen.off");
 
-    std::cout << Point::orientation_test(Point(0, 0, 0), Point(1, 0, 0), Point(0.5, 0.5, 0)) << std::endl;
-    std::cout << Point::orientation_test(Point(0, 0, 0), Point(0.5, 0.5, 0), Point(1, 0, 0)) << std::endl;
+    _mesh.add_vertex(Vertex(0, Point(0, 0, 0)));
+    _mesh.add_vertex(Vertex(0, Point(1, 0, 0)));
+    _mesh.add_vertex(Vertex(0, Point(0.5, 0.5, 0)));
+    _mesh.add_vertex(Vertex(1, Point(1.5, 0.25, 0)));
+    _mesh.add_vertex(Vertex(2, Point(-1.5, 0.25, 0)));
 
-    std::cout << Point::is_point_in_triangle(Point(0.25, 0.25, 0), Point(0, 0, 0), Point(1, 0, 0), Point(0.5, 0.5, 0)) << std::endl;
+    _mesh.add_face(Face(0, 1, 2, 1, 2, -1));
+    _mesh.add_face(Face(1, 3, 2, -1, 0, -1));
+    _mesh.add_face(Face(0, 1, 4, -1, -1, 0));
+
+    _mesh.compute_convex_hull_edges();
 
     precompute_mesh_curvature();
 }
@@ -30,7 +37,6 @@ void GeometricWorld::precompute_mesh_curvature()
     Vector max_curvature = Vector(std::numeric_limits<double>::min());
     for (int i = 0; i < _mesh.m_vertices.size(); i++)
     {
-        //Vector curvature = normalize(_mesh.laplacian_mean_curvature(i)) * 0.5 + 0.5;
         Vector curvature = length(_mesh.laplacian_mean_curvature(i));
         max_curvature = max(max_curvature, curvature);
 

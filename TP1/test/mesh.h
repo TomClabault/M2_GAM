@@ -82,6 +82,7 @@ public:
 
     void add_vertex(const Vertex& vertex);
     void add_face(const Face &face);
+    void push_convex_hull_edge(int index_vertex1, int index_vertex2);
 
     Iterator_on_faces faces_begin();
     Iterator_on_faces faces_past_the_end();
@@ -103,10 +104,12 @@ public:
     void edge_flip(const int face_index_1, const int face_index_2);
     void insert_point_2D(const Point& point);
 
+    void compute_convex_hull_edges();
+
+    //Edges that are on the convex hull of our triangulation
+    std::vector<std::pair<int, int>> m_convex_hull_edges;
     std::vector<Face> m_faces;
     std::vector<Vertex> m_vertices;
-    //void drawMesh();
-    //void drawMeshWireFrame();
 };
 
 #endif // MESH_H

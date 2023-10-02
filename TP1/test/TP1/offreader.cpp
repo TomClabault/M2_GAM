@@ -167,6 +167,13 @@ Mesh OffReader::read_off(const char* filepath)
         }
         else
             edges_to_face_and_opposing.insert({key_pair, value_pair});
+
+        if (face.m_fa == -1)
+            mesh.push_convex_hull_edge(face.m_b, face.m_c);
+        if (face.m_fb == -1)
+            mesh.push_convex_hull_edge(face.m_a, face.m_c);
+        if (face.m_fc == -1)
+            mesh.push_convex_hull_edge(face.m_a, face.m_b);
     }
 
     return mesh;

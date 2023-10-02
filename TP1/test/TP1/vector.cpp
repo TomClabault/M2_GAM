@@ -3,6 +3,16 @@
 
 #include <cmath>
 
+Point operator+(const Point& a, const Point& b)
+{
+    return Point(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+Point operator/(const Point& point, double k)
+{
+    return Point(point.x / k, point.y / k, point.z / k)    ;
+}
+
 Vector operator-(const Point& a, const Point& b)
 {
     return Vector(a.x - b.x, a.y - b.y, a.z - b.z);

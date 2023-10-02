@@ -26,6 +26,9 @@ Vector operator*(const Vector& vec, double k);
 Vector operator*(double k, const Vector& vec);
 Vector operator+(const Vector& a, double k);
 
+Point operator+(const Point& a, const Point& b);
+Point operator/(const Point& point, double k);
+
 double length(const Vector& vec);
 Vector normalize(const Vector& vec);
 double dot (const Vector& a, const Vector& b);
