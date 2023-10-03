@@ -230,6 +230,29 @@ Point Mesh::barycenter_of_face(const Face &face) const
     return (m_vertices[face.m_a].get_point() + m_vertices[face.m_b].get_point() + m_vertices[face.m_c].get_point()) / 3;
 }
 
+Circle Mesh::get_circumscribed_circle_of_face(const Face &face) const
+{
+    Point circle_center;
+
+    Point point_a, point_b, point_c;
+    point_a = m_vertices[face.m_a].get_point();
+    point_b = m_vertices[face.m_b].get_point();
+    point_c = m_vertices[face.m_c].get_point();
+
+    Vector AB = point_b - point_a;
+    Vector BC = point_c - point_b;
+    Vector CA = point_a - point_c;
+
+    float tan_A, tan_B, tan_C;
+    tan_A = length(cross(AB, -CA)) / dot(AB, -CA);
+    tan_B = length(cross(BC, -AB)) / dot(BC, -AB);
+    tan_C = length(cross(CA, -BC)) / dot(CA, -BC);
+
+    circle_center = Point(tan_B + tan_C, tan_C + tan_A, tan_A + tan_B);
+
+    return Circle(circle_center, length(circle_center - point_a));
+}
+
 void Mesh::face_split(const int face_index, const Point& new_point)
 {
 
@@ -457,6 +480,22 @@ void Mesh::insert_point_2D(const Point &point)
 
         //DO WE NEED INFINITE FACES TO FIND THE EDGES THAT ARE AT THE BOUNDARY OF THE MESH ?
     }
+}
+
+bool Mesh::is_edge_locally_delaunay(int face1_index, int face2_index) const
+{
+    const Face& face1 = m_faces[face1_index];
+    const Face& face2 = m_faces[face2_index];
+
+    //Finding the points opposite to the edge on the face 1 and face 2
+    int vertex_index_on_face1_opposite_to_face2 = face1.find_local_vertex_index_with_opposing_face(face2_index);
+    int vertex_index_on_face2_opposite_to_face1 = face2.find_local_vertex_index_with_opposing_face(face1_index);
+
+    Point opposite_vertex_on_face1 = m_vertices[face1.global_index_of_local_vertex_index(vertex_index_on_face1_opposite_to_face2)].get_point();
+    Point opposite_vertex_on_face2 = m_vertices[face2.global_index_of_local_vertex_index(vertex_index_on_face2_opposite_to_face1)].get_point();
+
+    return !get_circumscribed_circle_of_face(face1).contains_point(opposite_vertex_on_face2)
+        && !get_circumscribed_circle_of_face(face2).contains_point(opposite_vertex_on_face1);
 }
 
 void Mesh::compute_convex_hull_edges()

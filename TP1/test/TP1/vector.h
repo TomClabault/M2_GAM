@@ -20,6 +20,7 @@ public:
     double x, y, z;
 };
 
+Vector operator-(const Vector& vec);
 Vector operator-(const Point& a, const Point& b);
 Vector operator/(const Vector& vec, double k);
 Vector operator*(const Vector& vec, double k);

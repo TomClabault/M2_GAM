@@ -1,6 +1,7 @@
 #ifndef MESH_H
 #define MESH_H
 
+#include "circle.h"
 #include "face.h"
 #include "vertex.h"
 
@@ -96,14 +97,16 @@ public:
     Circulator_on_faces incident_faces_past_the_end();
 
     double face_area(const Face& face);
+    Point barycenter_of_face(const Face& face) const;
+    Circle get_circumscribed_circle_of_face(const Face& face) const;
 
     Vector laplacian_mean_curvature(const int vertex_index);
 
-    Point barycenter_of_face(const Face& face) const;
 
     void face_split(const int face_index, const Point& new_point);
     void edge_flip(const int face_index_1, const int face_index_2);
     void insert_point_2D(const Point& point);
+    bool is_edge_locally_delaunay(int face1_index, int face2_index) const;
 
     void compute_convex_hull_edges();
     void insert_outside_convex_hull_2D(const Point& point);

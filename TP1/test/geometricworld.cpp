@@ -28,6 +28,7 @@ void GeometricWorld::load_off(const char* filepath)
     _mesh.compute_convex_hull_edges();
 
     _mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0));
+    _mesh.insert_outside_convex_hull_2D(Point(-0.5, -1.0, 0));
 
     //precompute_mesh_curvature();
 }

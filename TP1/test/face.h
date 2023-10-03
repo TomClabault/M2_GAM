@@ -26,15 +26,26 @@ public:
      * @return The local index of the vertex that has for opposing face 'face_index'
      * -1 if no vertex has for opposing 'face_index'
      */
-    int find_local_vertex_index_with_opposing_face(int face_index)
+    int find_local_vertex_index_with_opposing_face(int face_index) const
     {
         return (face_index == m_fa) ? 0 : (m_fb == face_index) ? 1 : (face_index == m_fc ? 2 : -1);
+    }
+
+    int opposing_face(int index) const
+    {
+        return *(&m_fa + index);
     }
 
     int& opposing_face(int index)
     {
         return *(&m_fa + index);
     }
+
+    int global_index_of_local_vertex_index(int index) const
+    {
+        return *(&m_a + index);
+    }
+
 
     int& global_index_of_local_vertex_index(int index)
     {
