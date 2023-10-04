@@ -35,10 +35,10 @@ void GeometricWorld::load_off(const char* filepath)
         std::cout << *start << std::endl;
     }
 
-    //_mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0));
+    _mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0));
     //_mesh.insert_outside_convex_hull_2D(Point(-0.5, -1.0, 0));
 
-    //_mesh.delaunayize_lawson();
+    _mesh.delaunayize_lawson();
     precompute_mesh_curvature();
 }
 

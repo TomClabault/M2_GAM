@@ -62,7 +62,7 @@ public:
     public:
         Iterator_on_edges() { m_mesh = nullptr; }
         Iterator_on_edges(Mesh& mesh, bool past_the_end) { m_mesh = &mesh; m_past_the_end = past_the_end; };
-        Iterator_on_edges(Mesh& mesh) : m_mesh(&mesh), m_current_edge(std::make_pair(-1, -1)), m_current_face_index(0), m_current_edge_in_current_face(0) {}
+        Iterator_on_edges(Mesh& mesh);
 
         std::pair<int, int> operator*();
 

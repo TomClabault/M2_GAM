@@ -133,6 +133,13 @@ bool operator !=(const Mesh::Iterator_on_vertices& a, const Mesh::Iterator_on_ve
     return !(a == b);
 }
 
+Mesh::Iterator_on_edges::Iterator_on_edges(Mesh& mesh) : m_mesh(&mesh), m_current_face_index(0), m_current_edge_in_current_face(0)
+{
+    Face& current_face = m_mesh->m_faces[m_current_face_index];
+
+    m_current_edge = std::make_pair(current_face.m_a, current_face.m_b);
+}
+
 std::pair<int, int> Mesh::Iterator_on_edges::operator*()
 {
     return m_current_edge;
@@ -159,8 +166,20 @@ Mesh::Iterator_on_edges& operator++(Mesh::Iterator_on_edges& operand)
 
         bool edge_p1_smallest = edge_point_1_global_index < edge_point_2_global_index;
 
-        operand.m_current_edge = std::make_pair(edge_p1_smallest ? edge_point_1_global_index : edge_point_2_global_index,
-                                                edge_p1_smallest ? edge_point_2_global_index : edge_point_1_global_index);
+        std::pair<int, int> new_edge = std::make_pair(edge_p1_smallest ? edge_point_1_global_index : edge_point_2_global_index,
+                                                      edge_p1_smallest ? edge_point_2_global_index : edge_point_1_global_index);
+
+        bool edge_already_visited = operand.already_visited_edges.find(new_edge) == operand.already_visited_edges.end();
+        bool need_to_increment = false;
+        if (!edge_already_visited)
+        {
+            operand.m_current_edge = new_edge;
+            operand.already_visited_edges.insert(operand.m_current_edge);
+        }
+        else
+            //We're going to have to skip to the next edge because we already visited this edge
+            need_to_increment = true;
+
 
         if (operand.m_current_edge_in_current_face == 2)
         {
@@ -171,7 +190,12 @@ Mesh::Iterator_on_edges& operator++(Mesh::Iterator_on_edges& operand)
         }
         else
             operand.m_current_edge_in_current_face++;
+
+        if (need_to_increment)
+            ++operand;
     }
+
+    return operand;
 }
 
 Mesh::Iterator_on_edges operator++(Mesh::Iterator_on_edges& operand, int dummy)
@@ -297,7 +321,7 @@ Vector Mesh::laplacian_mean_curvature(const int vertex_index)
 
 std::pair<int, int> Mesh::get_faces_indices_of_edge(std::pair<int, int> vertex_index_pair)
 {
-    int first_face_index, second_face_index;
+    int first_face_index = -1, second_face_index = -1;
 
     auto faces_circulator = incident_faces(vertex_index_pair.first);
     auto faces_circulator_end = incident_faces_past_the_end();
@@ -309,7 +333,11 @@ std::pair<int, int> Mesh::get_faces_indices_of_edge(std::pair<int, int> vertex_i
          && current_face.contains_global_vertex_index(vertex_index_pair.second))
         {
             first_face_index = faces_circulator.get_current_face_index();
-            second_face_index = current_face.opposing_face(current_face.get_local_vertex_index_opposing_to_edge(vertex_index_pair.first, vertex_index_pair.second));
+
+            int local_index_of_first_vertex = current_face.local_index_of_global_vertex_index(vertex_index_pair.first);
+            int local_index_of_second_vertex = current_face.local_index_of_global_vertex_index(vertex_index_pair.second);
+
+            second_face_index = current_face.opposing_face(current_face.get_local_vertex_index_opposing_to_edge(local_index_of_first_vertex, local_index_of_second_vertex));
 
             break;
         }
@@ -416,6 +444,8 @@ void Mesh::face_split(const int face_index, const Point& new_point)
 void Mesh::edge_flip(const std::pair<int, int>& vertex_index_pair)
 {
     std::pair<int, int> faces_indices = get_faces_indices_of_edge(vertex_index_pair);
+    assert(faces_indices.first != -1);
+    assert(faces_indices.second != -1);
 
     edge_flip(faces_indices.first, faces_indices.second);
 }
@@ -584,6 +614,9 @@ bool Mesh::is_edge_locally_delaunay(const std::pair<int, int> two_vertex_indices
 
 bool Mesh::is_edge_locally_delaunay(int face1_index, int face2_index)
 {
+    if (face1_index == -1 || face2_index == -1)
+        return true;
+
     const Face& face1 = m_faces[face1_index];
     const Face& face2 = m_faces[face2_index];
 
@@ -609,7 +642,7 @@ void Mesh::delaunayize_lawson()
                 to_flip.push_back(*edge);
 
         for (std::pair<int, int> edge_to_flip : to_flip)
-            edge_flip(edge_to_flip.first, edge_to_flip.second);
+            edge_flip(edge_to_flip);
 
         to_flip.clear();
     } while (!to_flip.empty());
