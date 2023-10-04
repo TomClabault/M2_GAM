@@ -6,6 +6,7 @@
 #include "vertex.h"
 
 #include <QOpenGLWidget>
+#include <unordered_set>
 #include <vector>
 
 class Mesh
@@ -56,6 +57,39 @@ public:
         bool m_past_the_end;
     };
 
+    struct Iterator_on_edges
+    {
+    public:
+        Iterator_on_edges() { m_mesh = nullptr; }
+        Iterator_on_edges(Mesh& mesh, bool past_the_end) { m_mesh = &mesh; m_past_the_end = past_the_end};
+        Iterator_on_edges(Mesh& mesh) : m_mesh(&mesh), m_current_edge(std::make_pair(-1, -1)), m_current_face_index(0), m_current_edge_in_current_face(0) {}
+
+        std::pair<int, int> operator*();
+
+        friend Mesh::Iterator_on_edges& operator++(Mesh::Iterator_on_edges& operand);
+        friend Mesh::Iterator_on_edges operator++(Mesh::Iterator_on_edges& operand, int dummy);
+
+        friend bool operator ==(const Mesh::Iterator_on_edges& a, const Mesh::Iterator_on_edges& b);
+        friend bool operator !=(const Mesh::Iterator_on_edges& a, const Mesh::Iterator_on_edges& b);
+
+    private:
+        //From: https://stackoverflow.com/questions/15160889/how-can-i-make-an-unordered-set-of-pairs-of-integers-in-c
+        struct pair_hash {
+            inline std::size_t operator()(const std::pair<int,int> & v) const {
+                return v.first*31+v.second;
+            }
+        };
+
+        Mesh* m_mesh;
+        std::pair<int, int> m_current_edge;
+        int m_current_face_index;
+        int m_current_edge_in_current_face;
+
+        bool m_past_the_end = false;
+
+        std::unordered_set<std::pair<int, int>, pair_hash> already_visited_edges;
+    };
+
     struct Circulator_on_faces
     {
     public:
@@ -92,6 +126,9 @@ public:
     Iterator_on_vertices vertices_begin();
     Iterator_on_vertices vertices_past_the_end();
 
+    Iterator_on_edges edges_begin();
+    Iterator_on_edges edges_past_the_end();
+
     Circulator_on_faces incident_faces(int vertex_index);
     Circulator_on_faces incident_faces(Vertex& vertex);
     Circulator_on_faces incident_faces_past_the_end();
@@ -107,6 +144,9 @@ public:
     void edge_flip(const int face_index_1, const int face_index_2);
     void insert_point_2D(const Point& point);
     bool is_edge_locally_delaunay(int face1_index, int face2_index) const;
+    bool is_edge_locally_delaunay(std::pair<int, int> two_vertex_indices) const;
+
+    void delaunayize_lawson();
 
     void compute_convex_hull_edges();
     void insert_outside_convex_hull_2D(const Point& point);

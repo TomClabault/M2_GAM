@@ -133,6 +133,58 @@ bool operator !=(const Mesh::Iterator_on_vertices& a, const Mesh::Iterator_on_ve
     return !(a == b);
 }
 
+std::pair<int, int> Mesh::Iterator_on_edges::operator*()
+{
+    return m_current_edge;
+}
+
+Mesh::Iterator_on_edges& operator++(Mesh::Iterator_on_edges& operand)
+{
+    if (!operand.m_past_the_end)
+    {
+        Mesh* mesh = operand.m_mesh;
+
+        Face& current_face = mesh->m_faces[operand.m_current_face_index];
+
+        int edge_point_1_global_index = current_face.global_index_of_local_vertex_index(operand.m_current_edge_in_current_face);
+        int edge_point_2_global_index = current_face.global_index_of_local_vertex_index((operand.m_current_edge_in_current_face + 1) % 3);
+
+        bool edge_p1_smallest = edge_point_1_global_index < edge_point_2_global_index;
+
+        operand.m_current_edge = std::make_pair(edge_p1_smallest ? edge_point_1_global_index : edge_point_2_global_index,
+                                                edge_p1_smallest ? edge_point_2_global_index : edge_point_1_global_index);
+
+        if (operand.m_current_edge_in_current_face == 2)
+        {
+            operand.m_current_edge_in_current_face = 0;
+            operand.m_current_face_index++;
+            if ((unsigned long long int)operand.m_current_face_index == mesh->m_faces.size())
+                operand.m_past_the_end = true;
+        }
+        else
+            operand.m_current_edge_in_current_face++;
+    }
+}
+
+Mesh::Iterator_on_edges operator++(Mesh::Iterator_on_edges& operand, int dummy)
+{
+    Mesh::Iterator_on_edges copy = operand;
+
+    ++operand;
+
+    return copy;
+}
+
+bool operator ==(const Mesh::Iterator_on_edges& a, const Mesh::Iterator_on_edges& b)
+{
+    return (a.m_past_the_end == b.m_past_the_end) || ((a.m_current_edge == b.m_current_edge) && (a.m_current_face_index == b.m_current_face_index));
+}
+
+bool operator !=(const Mesh::Iterator_on_edges& a, const Mesh::Iterator_on_edges& b)
+{
+    return !(a == b);
+}
+
 Mesh::Iterator_on_vertices Mesh::vertices_begin()
 {
     return Mesh::Iterator_on_vertices(*this);
@@ -141,6 +193,16 @@ Mesh::Iterator_on_vertices Mesh::vertices_begin()
 Mesh::Iterator_on_vertices Mesh::vertices_past_the_end()
 {
     return Mesh::Iterator_on_vertices(*this, true);
+}
+
+Mesh::Iterator_on_edges Mesh::edges_begin()
+{
+    return Iterator_on_edges(*this);
+}
+
+Mesh::Iterator_on_edges Mesh::edges_past_the_end()
+{
+    return Iterator_on_edges(*this, true);
 }
 
 Mesh::Circulator_on_faces Mesh::incident_faces(int vertex_index)
@@ -495,7 +557,16 @@ bool Mesh::is_edge_locally_delaunay(int face1_index, int face2_index) const
     Point opposite_vertex_on_face2 = m_vertices[face2.global_index_of_local_vertex_index(vertex_index_on_face2_opposite_to_face1)].get_point();
 
     return !get_circumscribed_circle_of_face(face1).contains_point(opposite_vertex_on_face2)
-        && !get_circumscribed_circle_of_face(face2).contains_point(opposite_vertex_on_face1);
+           && !get_circumscribed_circle_of_face(face2).contains_point(opposite_vertex_on_face1);
+}
+
+void Mesh::delaunayize_lawson()
+{
+    std::vector<std::pair<int, int>> to_flip;
+    for (auto edge = edges_begin(); edge != edges_past_the_end(); edge++)
+    {
+        if (is_edge_locally_delaunay(*edge)) --------------
+    }
 }
 
 void Mesh::compute_convex_hull_edges()

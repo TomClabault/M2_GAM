@@ -6,6 +6,7 @@
 class Face
 {
 public:
+
     /**
      * @brief Face
      * @param a Index of the first vertex of the face
