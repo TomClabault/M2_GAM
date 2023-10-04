@@ -18,6 +18,23 @@ public:
     Face(int a, int b, int c, int fa, int fb, int fc) : m_a(a), m_b(b), m_c(c), m_fa(fa), m_fb(fb), m_fc(fc) { }
     Face() : m_a(-1), m_b(-1), m_c(-1), m_fa(-1), m_fb(-1), m_fc(-1) {}
 
+    int get_local_vertex_index_opposing_to_edge(int edge_local_vertex_index_1, int edge_local_vertex_index_2)
+    {
+        if (edge_local_vertex_index_1  + edge_local_vertex_index_2 == 1)
+            return 2;
+        else if (edge_local_vertex_index_1 + edge_local_vertex_index_2 == 2)
+            return 1;
+        else if (edge_local_vertex_index_1 + edge_local_vertex_index_2 == 3)
+            return 0;
+        else
+            return -1;
+    }
+
+    bool contains_global_vertex_index(int global_vertex_index)
+    {
+        return m_a == global_vertex_index || m_b == global_vertex_index || m_c == global_vertex_index;
+    }
+
     int local_index_of_global_vertex_index(int global_vertex_index)
     {
         return (m_a == global_vertex_index) ? 0 : (m_b == global_vertex_index) ? 1 : (m_c == global_vertex_index) ? 2 : -1;

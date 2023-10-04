@@ -27,10 +27,19 @@ void GeometricWorld::load_off(const char* filepath)
 
     _mesh.compute_convex_hull_edges();
 
-    _mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0));
-    _mesh.insert_outside_convex_hull_2D(Point(-0.5, -1.0, 0));
+    auto start = _mesh.incident_faces(0);
+    auto end = _mesh.incident_faces_past_the_end();
 
-    //precompute_mesh_curvature();
+    for (; start != end; ++start)
+    {
+        std::cout << *start << std::endl;
+    }
+
+    //_mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0));
+    //_mesh.insert_outside_convex_hull_2D(Point(-0.5, -1.0, 0));
+
+    //_mesh.delaunayize_lawson();
+    precompute_mesh_curvature();
 }
 
 void GeometricWorld::precompute_mesh_curvature()
@@ -50,7 +59,7 @@ void GeometricWorld::precompute_mesh_curvature()
         curvature /= max_curvature;
 }
 
-#define COLOR_CURVATURE 0
+#define COLOR_CURVATURE 1
 
 //Example with a bBox
 void GeometricWorld::draw()

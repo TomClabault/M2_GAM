@@ -138,6 +138,14 @@ std::pair<int, int> Mesh::Iterator_on_edges::operator*()
     return m_current_edge;
 }
 
+int Mesh::Iterator_on_edges::get_opposite_face_index()
+{
+    if (!m_past_the_end)
+    {
+        return m_mesh->m_faces[m_current_face_index].opposing_face((m_current_edge_in_current_face + 2) % 3);
+    }
+}
+
 Mesh::Iterator_on_edges& operator++(Mesh::Iterator_on_edges& operand)
 {
     if (!operand.m_past_the_end)
@@ -232,8 +240,8 @@ Vector Mesh::laplacian_mean_curvature(const int vertex_index)
 {
     Vertex& vertex = m_vertices[vertex_index];
     const Point& vertex_point = vertex.get_point();
-    Mesh::Circulator_on_faces circulator = Mesh::Circulator_on_faces(*this, vertex);
-    Mesh::Circulator_on_faces circulator_begin = circulator;
+    Mesh::Circulator_on_faces circulator = incident_faces(vertex);
+    Mesh::Circulator_on_faces circulator_end =  incident_faces_past_the_end();
 
     Vector laplacien_sum(0, 0, 0);
     double neighbor_faces_area_sum = 0.0;
@@ -282,9 +290,32 @@ Vector Mesh::laplacian_mean_curvature(const int vertex_index)
         laplacien_sum += laplacien;
 
         circulator++;
-    } while (circulator != circulator_begin);
+    } while (circulator != circulator_end);
 
     return laplacien_sum / (2 * neighbor_faces_area_sum);
+}
+
+std::pair<int, int> Mesh::get_faces_indices_of_edge(std::pair<int, int> vertex_index_pair)
+{
+    int first_face_index, second_face_index;
+
+    auto faces_circulator = incident_faces(vertex_index_pair.first);
+    auto faces_circulator_end = incident_faces_past_the_end();
+
+    for (; faces_circulator != faces_circulator_end; faces_circulator++)
+    {
+        Face& current_face = *faces_circulator;
+        if (current_face.contains_global_vertex_index(vertex_index_pair.first)
+         && current_face.contains_global_vertex_index(vertex_index_pair.second))
+        {
+            first_face_index = faces_circulator.get_current_face_index();
+            second_face_index = current_face.opposing_face(current_face.get_local_vertex_index_opposing_to_edge(vertex_index_pair.first, vertex_index_pair.second));
+
+            break;
+        }
+    }
+
+    return std::make_pair(first_face_index, second_face_index);
 }
 
 Point Mesh::barycenter_of_face(const Face &face) const
@@ -380,6 +411,13 @@ void Mesh::face_split(const int face_index, const Point& new_point)
 
     m_faces.push_back(new_face1);
     m_faces.push_back(new_face2);
+}
+
+void Mesh::edge_flip(const std::pair<int, int>& vertex_index_pair)
+{
+    std::pair<int, int> faces_indices = get_faces_indices_of_edge(vertex_index_pair);
+
+    edge_flip(faces_indices.first, faces_indices.second);
 }
 
 void Mesh::edge_flip(const int face_0_index, const int face_1_index)
@@ -534,17 +572,17 @@ void Mesh::insert_point_2D(const Point &point)
     if (Point::is_point_in_triangle(point, a, b, c))
         face_split(current_face_index, point);
     else
-    {
-        //We're going to have to add the point outside of the convex hull of the current
-        //mesh
-
-        //TODO parcourir les aretes au bord du mesh et voir si elles sont visibles par le point a inserer
-
-        //DO WE NEED INFINITE FACES TO FIND THE EDGES THAT ARE AT THE BOUNDARY OF THE MESH ?
-    }
+        insert_outside_convex_hull_2D(point);
 }
 
-bool Mesh::is_edge_locally_delaunay(int face1_index, int face2_index) const
+bool Mesh::is_edge_locally_delaunay(const std::pair<int, int> two_vertex_indices)
+{
+    std::pair<int, int> faces_indices = get_faces_indices_of_edge(two_vertex_indices);
+
+    return is_edge_locally_delaunay(faces_indices.first, faces_indices.second);
+}
+
+bool Mesh::is_edge_locally_delaunay(int face1_index, int face2_index)
 {
     const Face& face1 = m_faces[face1_index];
     const Face& face2 = m_faces[face2_index];
@@ -563,11 +601,22 @@ bool Mesh::is_edge_locally_delaunay(int face1_index, int face2_index) const
 void Mesh::delaunayize_lawson()
 {
     std::vector<std::pair<int, int>> to_flip;
-    for (auto edge = edges_begin(); edge != edges_past_the_end(); edge++)
+
+    do
     {
-        if (is_edge_locally_delaunay(*edge)) --------------
-    }
+        for (auto edge = edges_begin(); edge != edges_past_the_end(); edge++)
+            if (!is_edge_locally_delaunay(*edge))
+                to_flip.push_back(*edge);
+
+        for (std::pair<int, int> edge_to_flip : to_flip)
+            edge_flip(edge_to_flip.first, edge_to_flip.second);
+
+        to_flip.clear();
+    } while (!to_flip.empty());
 }
+
+//TODO reordonner les edges dans convex_hull_edges pour qu'elles soient en sens trigo
+//TODO dans l'algo d'insertion en dehors, il faut arreter de regarder les edges de la convex hull quand on a trouve un changement d'orientation
 
 void Mesh::compute_convex_hull_edges()
 {
@@ -713,9 +762,25 @@ Mesh::Circulator_on_faces& operator++(Mesh::Circulator_on_faces& operand)
     else
         index_of_main_vertex_in_current_face = 2;
 
-    int next_vertex_index = (index_of_main_vertex_in_current_face + 1) % 3;
+
+    int next_vertex_index;
+    if (!operand.m_circulating_backwards)
+        next_vertex_index = (index_of_main_vertex_in_current_face + 1) % 3;
+    else
+        next_vertex_index = (index_of_main_vertex_in_current_face + 2) % 3;
 
     operand.m_current_face_index = current_face.opposing_face(next_vertex_index);
+    if(operand.m_current_face_index == -1 && operand.m_circulating_backwards)
+        //We circulated around everything
+        operand.m_current_face_index = -1;
+    else if (operand.m_current_face_index == -1)
+    {
+        //We arrived outside of the mesh, we're going to circulate the other way around from the starting face
+        operand.m_current_face_index = operand.m_start_face_index;
+        operand.m_circulating_backwards = true;
+
+        ++operand;
+    }
 
     return operand;
 }
@@ -732,7 +797,9 @@ Mesh::Circulator_on_faces operator++(Mesh::Circulator_on_faces& operand, int dum
 
 bool operator ==(const Mesh::Circulator_on_faces& a, const Mesh::Circulator_on_faces& b)
 {
-    if (a.m_current_face_index != b.m_current_face_index)
+    if (a.m_current_face_index == -1 && b.m_current_face_index == -1)
+        return true;
+    else if (a.m_current_face_index != b.m_current_face_index)
         return false;
     else if (a.m_mesh != b.m_mesh)
         return false;

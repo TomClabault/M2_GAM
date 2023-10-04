@@ -61,7 +61,7 @@ public:
     {
     public:
         Iterator_on_edges() { m_mesh = nullptr; }
-        Iterator_on_edges(Mesh& mesh, bool past_the_end) { m_mesh = &mesh; m_past_the_end = past_the_end};
+        Iterator_on_edges(Mesh& mesh, bool past_the_end) { m_mesh = &mesh; m_past_the_end = past_the_end; };
         Iterator_on_edges(Mesh& mesh) : m_mesh(&mesh), m_current_edge(std::make_pair(-1, -1)), m_current_face_index(0), m_current_edge_in_current_face(0) {}
 
         std::pair<int, int> operator*();
@@ -71,6 +71,9 @@ public:
 
         friend bool operator ==(const Mesh::Iterator_on_edges& a, const Mesh::Iterator_on_edges& b);
         friend bool operator !=(const Mesh::Iterator_on_edges& a, const Mesh::Iterator_on_edges& b);
+
+        int get_current_face_index() { return m_current_face_index; }
+        int get_opposite_face_index();
 
     private:
         //From: https://stackoverflow.com/questions/15160889/how-can-i-make-an-unordered-set-of-pairs-of-integers-in-c
@@ -94,10 +97,11 @@ public:
     {
     public:
         Circulator_on_faces() { m_mesh = nullptr; };
-        Circulator_on_faces(Mesh& mesh, int current_face_index) : m_mesh(&mesh), m_current_face_index(current_face_index) {}
-        Circulator_on_faces(Mesh& mesh, Vertex& vertex) : m_mesh(&mesh), m_vertex_circulating_around(&vertex), m_current_face_index(vertex.get_adjacent_face_index()) {}
+        Circulator_on_faces(Mesh& mesh, int current_face_index) : m_mesh(&mesh), m_current_face_index(current_face_index), m_start_face_index(current_face_index) {}
+        Circulator_on_faces(Mesh& mesh, Vertex& vertex) : m_mesh(&mesh), m_vertex_circulating_around(&vertex), m_current_face_index(vertex.get_adjacent_face_index()), m_start_face_index(vertex.get_adjacent_face_index()) {}
 
         Face& operator*();
+        int get_current_face_index() { return m_current_face_index; }
 
         friend Mesh::Circulator_on_faces& operator++(Mesh::Circulator_on_faces& operand);
         friend Mesh::Circulator_on_faces operator++(Mesh::Circulator_on_faces& operand, int dummy);
@@ -110,6 +114,9 @@ public:
         Vertex* m_vertex_circulating_around;
 
         int m_current_face_index;
+        int m_start_face_index;
+
+        bool m_circulating_backwards = false;
     };
 
     Mesh() {}
@@ -139,12 +146,13 @@ public:
 
     Vector laplacian_mean_curvature(const int vertex_index);
 
-
+    std::pair<int, int> get_faces_indices_of_edge(std::pair<int, int> two_vertices_indices);
     void face_split(const int face_index, const Point& new_point);
+    void edge_flip(const std::pair<int, int>& vertex_index_pair);
     void edge_flip(const int face_index_1, const int face_index_2);
     void insert_point_2D(const Point& point);
-    bool is_edge_locally_delaunay(int face1_index, int face2_index) const;
-    bool is_edge_locally_delaunay(std::pair<int, int> two_vertex_indices) const;
+    bool is_edge_locally_delaunay(int face1_index, int face2_index);
+    bool is_edge_locally_delaunay(const std::pair<int, int> two_vertex_indices);
 
     void delaunayize_lawson();
 
