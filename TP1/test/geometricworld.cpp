@@ -36,7 +36,7 @@ void GeometricWorld::load_off(const char* filepath)
     }
 
     _mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0));
-    //_mesh.insert_outside_convex_hull_2D(Point(-0.5, -1.0, 0));
+    _mesh.insert_outside_convex_hull_2D(Point(-0.5, -1.0, 0));
 
     _mesh.delaunayize_lawson();
     precompute_mesh_curvature();
@@ -59,7 +59,7 @@ void GeometricWorld::precompute_mesh_curvature()
         curvature /= max_curvature;
 }
 
-#define COLOR_CURVATURE 1
+#define COLOR_CURVATURE 0
 
 //Example with a bBox
 void GeometricWorld::draw()

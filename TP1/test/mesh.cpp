@@ -628,7 +628,7 @@ bool Mesh::is_edge_locally_delaunay(int face1_index, int face2_index)
     Point opposite_vertex_on_face2 = m_vertices[face2.global_index_of_local_vertex_index(vertex_index_on_face2_opposite_to_face1)].get_point();
 
     return !get_circumscribed_circle_of_face(face1).contains_point(opposite_vertex_on_face2)
-           && !get_circumscribed_circle_of_face(face2).contains_point(opposite_vertex_on_face1);
+        && !get_circumscribed_circle_of_face(face2).contains_point(opposite_vertex_on_face1);
 }
 
 void Mesh::delaunayize_lawson()
