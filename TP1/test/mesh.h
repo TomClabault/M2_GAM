@@ -119,6 +119,35 @@ public:
         bool m_circulating_backwards = false;
     };
 
+    struct Iterator_on_convex_hull_edges_in_order
+    {
+        struct Convex_hull_edge
+        {
+            int face_index;
+            int local_index_of_vertex_opposite_to_edge;
+        };
+
+        Iterator_on_convex_hull_edges_in_order(Mesh& mesh);
+        Iterator_on_convex_hull_edges_in_order(Mesh& mesh, Convex_hull_edge start_edge) : m_mesh(&mesh), m_current_edge(start_edge) {}
+        Iterator_on_convex_hull_edges_in_order(bool past_the_end) : m_past_the_end(past_the_end) {}
+
+        const std::pair<int, int>& operator*();
+
+        friend Mesh::Iterator_on_convex_hull_edges_in_order& operator++(Mesh::Iterator_on_convex_hull_edges_in_order& operand);
+        friend Mesh::Iterator_on_convex_hull_edges_in_order operator++(Mesh::Iterator_on_convex_hull_edges_in_order& operand, int dummy);
+
+        const Convex_hull_edge& get_current_edge();
+
+        friend bool operator ==(const Mesh::Iterator_on_convex_hull_edges_in_order& a, const Mesh::Iterator_on_convex_hull_edges_in_order& b);
+        friend bool operator !=(const Mesh::Iterator_on_convex_hull_edges_in_order& a, const Mesh::Iterator_on_convex_hull_edges_in_order& b);
+
+        Mesh* m_mesh;
+
+        Convex_hull_edge m_current_edge;
+
+        bool m_past_the_end = false;
+    };
+
     Mesh() {}
     Mesh(std::vector<Face>& faces, std::vector<Vertex>& vertices) : m_faces(faces), m_vertices(vertices) {}
 
@@ -139,6 +168,10 @@ public:
     Circulator_on_faces incident_faces(int vertex_index);
     Circulator_on_faces incident_faces(Vertex& vertex);
     Circulator_on_faces incident_faces_past_the_end();
+
+    Iterator_on_convex_hull_edges_in_order convex_hull_edges_in_order_begin();
+    Iterator_on_convex_hull_edges_in_order convex_hull_edges_in_order_begin(Mesh::Iterator_on_convex_hull_edges_in_order::Convex_hull_edge& current_edge);
+    Iterator_on_convex_hull_edges_in_order convex_hull_edges_in_order_past_the_end();
 
     double face_area(const Face& face);
     Point barycenter_of_face(const Face& face) const;

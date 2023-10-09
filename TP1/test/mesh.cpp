@@ -252,6 +252,21 @@ Mesh::Circulator_on_faces Mesh::incident_faces_past_the_end()
     return Mesh::Circulator_on_faces(*this, -1);
 }
 
+Mesh::Iterator_on_convex_hull_edges_in_order Mesh::convex_hull_edges_in_order_begin()
+{
+    return Mesh::Iterator_on_convex_hull_edges_in_order(this);
+}
+
+Mesh::Iterator_on_convex_hull_edges_in_order Mesh::convex_hull_edges_in_order_begin(Mesh::Iterator_on_convex_hull_edges_in_order::Convex_hull_edge& start_edge)
+{
+    return Mesh::Iterator_on_convex_hull_edges_in_order(*this, start_edge);
+}
+
+Mesh::Iterator_on_convex_hull_edges_in_order Mesh::convex_hull_edges_in_order_past_the_end()
+{
+    return Mesh::Iterator_on_convex_hull_edges_in_order(true);
+}
+
 double Mesh::face_area(const Face &face)
 {
     Vector face_ab = m_vertices[face.m_b] - m_vertices[face.m_a];
@@ -683,21 +698,45 @@ void Mesh::insert_outside_convex_hull_2D(const Point &point)
     std::vector<std::list<std::pair<int, int>>::iterator> convex_hull_edges_to_remove;
     std::vector<std::list<int>::iterator> convex_hull_edges_faces_to_remove;
 
-    int edge_index = 0;
-    auto convex_hull_edge_ite = m_convex_hull_edges.begin();
-    auto convex_hull_edge_face_ite = m_convex_hull_edges_faces.begin();
-    for (; convex_hull_edge_ite != m_convex_hull_edges.end();
-           convex_hull_edge_ite++, edge_index++)
+
+    // Looking for an edge that is visible from the point we want to insert
+    auto convex_hull_edge_ite = convex_hull_edges_in_order_begin();
+    bool non_visible_found = false;
+    bool visible = false;
+    do
     {
         std::pair<int, int> convex_hull_edge = *convex_hull_edge_ite;
-        int convex_hull_edge_face_index = *convex_hull_edge_face_ite;
 
         Point edge_point1 = m_vertices[convex_hull_edge.first].get_point();
         Point edge_point2 = m_vertices[convex_hull_edge.second].get_point();
 
-        //If the edge is visible from the point we want to insert
+        visible = Point::orientation_test(point, edge_point2, edge_point1) < 0;
+        if (!visible)
+            non_visible_found = true;
+
+        ++convex_hull_edge_ite;
+    } while (!visible || !non_visible_found);
+
+    auto first_visible_edge = convex_hull_edge_ite.get_current_edge();
+
+
+
+
+    convex_hull_edge_ite = convex_hull_edges_in_order_begin(first_visible_edge);
+    auto convex_hull_edge_ite_end = convex_hull_edges_in_order_past_the_end();
+    int edge_index = 0;
+    for (; convex_hull_edge_ite != convex_hull_edge_ite_end;
+           convex_hull_edge_ite++, edge_index++)
+    {
+        std::pair<int, int> convex_hull_edge = *convex_hull_edge_ite;
+        int convex_hull_edge_face_index = *convex_hull_edge_ite.get_current_edge().face_index;
+
+        Point edge_point1 = m_vertices[convex_hull_edge.first].get_point();
+        Point edge_point2 = m_vertices[convex_hull_edge.second].get_point();
+
         if (Point::orientation_test(point, edge_point2, edge_point1) > 0)
         {
+            //If the edge is visible from the point we want to insert
             Face new_face = Face(new_vertex_index, convex_hull_edge.first, convex_hull_edge.second, convex_hull_edge_face_index, -1, -1);
             int new_face_index = m_faces.size();
             m_faces.push_back(new_face);
@@ -744,6 +783,8 @@ void Mesh::insert_outside_convex_hull_2D(const Point &point)
                 part_of_new_convex_hull.insert(std::make_pair(new_edge_2, true));
             }
         }
+        else
+            break;
     }
 
     //Removing the edges that are not part of the convex hull anymore
@@ -850,7 +891,84 @@ bool operator !=(const Mesh::Circulator_on_faces& a, const Mesh::Circulator_on_f
 }
 
 
+Mesh::Iterator_on_convex_hull_edges_in_order::Iterator_on_convex_hull_edges_in_order(Mesh& mesh) : m_mesh(&mesh)
+{
+    int edge_face_index = m_mesh->get_one_convex_hull_face();
+    m_current_edge = Convex_hull_edge
+    {
+        edge_face_index,
+        m_mesh->m_faces[edge_face_index].find_local_vertex_index_with_opposing_face(-1)
+    };
+}
 
+const std::pair<int, int>& Mesh::Iterator_on_convex_hull_edges_in_order::operator*()
+{
+    Face& face = m_mesh->m_faces[m_current_edge.face_index];
+
+    return std::make_pair(face.global_index_of_local_vertex_index((m_current_edge.local_index_of_vertex_opposite_to_edge + 1) % 3),
+                          face.global_index_of_local_vertex_index((m_current_edge.local_index_of_vertex_opposite_to_edge + 2) % 3));
+}
+
+//Prefix
+Mesh::Iterator_on_convex_hull_edges_in_order& operator++(Mesh::Iterator_on_convex_hull_edges_in_order& operand)
+{
+    Mesh::Iterator_on_convex_hull_edges_in_order::Convex_hull_edge current_edge = operand.get_current_edge();
+
+    Face& start_face = operand.m_mesh->m_faces[current_edge.face_index];
+    int global_index_of_vertex_rotating_around = start_face.global_index_of_local_vertex_index((current_edge.local_index_of_vertex_opposite_to_edge + 2) % 3);
+    int next_vertex_local_index = (start_face.local_index_of_global_vertex_index(global_index_of_vertex_rotating_around) + 2) % 3;
+    int next_face_index = start_face.opposing_face(next_vertex_local_index);
+    int current_face_index = next_face_index;
+    while (next_face_index != -1)
+    {
+        Face& current_face = operand.m_faces[current_face_index];
+        current_face_index = next_face_index;
+
+        global_index_of_vertex_rotating_around = current_face.global_index_of_local_vertex_index((current_edge.local_index_of_vertex_opposite_to_edge + 2) % 3);
+        next_vertex_local_index = (current_face.local_index_of_global_vertex_index(global_index_of_vertex_rotating_around) + 2) % 3;
+        next_face_index = start_face.opposing_face(next_vertex_local_index);
+    }
+
+    // We found the next face that is on the convex hull, getting the edge
+    Mesh::Iterator_on_convex_hull_edges_in_order::Convex_hull_edge new_current_edge
+    {
+        current_face_index,
+        next_vertex_local_index
+    };
+
+    operand.m_current_edge = new_current_edge;
+
+    return operand;
+}
+
+// Postfix
+Mesh::Iterator_on_convex_hull_edges_in_order operator++(Mesh::Iterator_on_convex_hull_edges_in_order& operand, int dummy)
+{
+    Mesh::Iterator_on_convex_hull_edges_in_order copy = operand;
+
+    ++operand;
+
+    return copy;
+}
+
+const Mesh::Iterator_on_convex_hull_edges_in_order::Convex_hull_edge &Mesh::Iterator_on_convex_hull_edges_in_order::get_current_edge()
+{
+    return m_current_edge;
+}
+
+bool operator ==(const Mesh::Iterator_on_convex_hull_edges_in_order& a, const Mesh::Iterator_on_convex_hull_edges_in_order& b)
+{
+    if (a.m_past_the_end == b.m_past_the_end)
+        return true;
+    else
+        return (a.m_current_edge == b.m_current_edge);
+
+}
+
+bool operator !=(const Mesh::Iterator_on_convex_hull_edges_in_order& a, const Mesh::Iterator_on_convex_hull_edges_in_order& b)
+{
+    return !(a == b);
+}
 
 
 
@@ -872,4 +990,17 @@ void Mesh::push_convex_hull_edge(int index_vertex1, int index_vertex2)
 void Mesh::push_convex_hull_edge_face(int face_index)
 {
     m_convex_hull_edges_faces.push_back(face_index);
+}
+
+int Mesh::get_one_convex_hull_face()
+{
+    int face_index = 0;
+    for (Face& face : m_faces)
+    {
+        if (face.find_local_vertex_index_with_opposing_face(-1) != -1)
+            return face_index;
+
+        face_index++;
+    }
+
 }
