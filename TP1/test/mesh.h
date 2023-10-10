@@ -125,13 +125,15 @@ public:
         {
             int face_index;
             int local_index_of_vertex_opposite_to_edge;
+
+            friend bool operator==(const Convex_hull_edge& a, const Convex_hull_edge& b);
         };
 
         Iterator_on_convex_hull_edges_in_order(Mesh& mesh);
-        Iterator_on_convex_hull_edges_in_order(Mesh& mesh, Convex_hull_edge start_edge) : m_mesh(&mesh), m_current_edge(start_edge) {}
+        Iterator_on_convex_hull_edges_in_order(Mesh& mesh, Convex_hull_edge start_edge) : m_mesh(&mesh), m_current_edge(start_edge), m_start_edge(start_edge) {}
         Iterator_on_convex_hull_edges_in_order(bool past_the_end) : m_past_the_end(past_the_end) {}
 
-        const std::pair<int, int>& operator*();
+        const std::pair<int, int> operator*();
 
         friend Mesh::Iterator_on_convex_hull_edges_in_order& operator++(Mesh::Iterator_on_convex_hull_edges_in_order& operand);
         friend Mesh::Iterator_on_convex_hull_edges_in_order operator++(Mesh::Iterator_on_convex_hull_edges_in_order& operand, int dummy);
@@ -144,6 +146,7 @@ public:
         Mesh* m_mesh;
 
         Convex_hull_edge m_current_edge;
+        Convex_hull_edge m_start_edge;
 
         bool m_past_the_end = false;
     };
@@ -153,8 +156,7 @@ public:
 
     void add_vertex(const Vertex& vertex);
     void add_face(const Face &face);
-    void push_convex_hull_edge(int index_vertex1, int index_vertex2);
-    void push_convex_hull_edge_face(int face_index);
+    int get_one_convex_hull_face();
 
     Iterator_on_faces faces_begin();
     Iterator_on_faces faces_past_the_end();
@@ -192,10 +194,6 @@ public:
     void compute_convex_hull_edges();
     void insert_outside_convex_hull_2D(const Point& point);
 
-    //Edges that are on the convex hull of our triangulation
-    std::list<std::pair<int, int>> m_convex_hull_edges;
-    //Face asociated with the edge of 'm_convex_hull_edges'
-    std::list<int> m_convex_hull_edges_faces;
     std::vector<Face> m_faces;
     std::vector<Vertex> m_vertices;
 };

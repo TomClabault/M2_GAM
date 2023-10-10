@@ -25,8 +25,6 @@ void GeometricWorld::load_off(const char* filepath)
     _mesh.add_face(Face(1, 3, 2, -1, 0, -1));
     _mesh.add_face(Face(0, 2, 4, -1, -1, 0));
 
-    _mesh.compute_convex_hull_edges();
-
     auto start = _mesh.incident_faces(0);
     auto end = _mesh.incident_faces_past_the_end();
 
@@ -36,10 +34,11 @@ void GeometricWorld::load_off(const char* filepath)
     }
 
     _mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0));
-    //_mesh.insert_outside_convex_hull_2D(Point(-0.5, -1.0, 0));
+    _mesh.insert_outside_convex_hull_2D(Point(-0.5, -0.6, 0));
+    _mesh.insert_outside_convex_hull_2D(Point(1.0, -0.6, 0));
 
-    _mesh.delaunayize_lawson();
-    precompute_mesh_curvature();
+    //_mesh.delaunayize_lawson();
+    //precompute_mesh_curvature();
 }
 
 void GeometricWorld::precompute_mesh_curvature()
