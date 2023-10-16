@@ -12,6 +12,13 @@
 class Mesh
 {
 public:
+    //From: https://stackoverflow.com/questions/15160889/how-can-i-make-an-unordered-set-of-pairs-of-integers-in-c
+    struct pair_hash {
+        inline std::size_t operator()(const std::pair<int,int> & v) const {
+            return v.first*31+v.second;
+        }
+    };
+
     struct Iterator_on_faces
     {
     public:
@@ -76,13 +83,6 @@ public:
         int get_opposite_face_index();
 
     private:
-        //From: https://stackoverflow.com/questions/15160889/how-can-i-make-an-unordered-set-of-pairs-of-integers-in-c
-        struct pair_hash {
-            inline std::size_t operator()(const std::pair<int,int> & v) const {
-                return v.first*31+v.second;
-            }
-        };
-
         Mesh* m_mesh;
         std::pair<int, int> m_current_edge;
         int m_current_face_index;
@@ -176,15 +176,17 @@ public:
     Iterator_on_convex_hull_edges_in_order convex_hull_edges_in_order_past_the_end();
 
     double face_area(const Face& face);
+    Point barycenter_of_face(int face_index) const;
     Point barycenter_of_face(const Face& face) const;
+    std::vector<std::pair<int, int>> get_edges_of_face(const Face& face);
     Circle get_circumscribed_circle_of_face(const Face& face) const;
 
     Vector laplacian_mean_curvature(const int vertex_index);
 
     std::pair<int, int> get_faces_indices_of_edge(std::pair<int, int> two_vertices_indices);
     void face_split(const int face_index, const Point& new_point);
-    void edge_flip(const std::pair<int, int>& vertex_index_pair);
-    void edge_flip(const int face_index_1, const int face_index_2);
+    std::vector<std::pair<int, int>> edge_flip(const std::pair<int, int>& vertex_index_pair);
+    std::vector<std::pair<int, int>> edge_flip(const int face_index_1, const int face_index_2);
     void insert_point_2D(const Point& point);
     bool is_edge_locally_delaunay(int face1_index, int face2_index);
     bool is_edge_locally_delaunay(const std::pair<int, int> two_vertex_indices);

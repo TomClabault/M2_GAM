@@ -35,3 +35,17 @@ int Point::is_point_in_triangle(const Point &point_to_test, const Point &a, cons
              && second_edge > 0
              && third_edge > 0) * 2 - 1;
 }
+
+double Point::operator[](int index)
+{
+    return *(&x + index);
+}
+
+Point &Point::operator/=(double k)
+{
+    x /= k;
+    y /= k;
+    z /= k;
+
+    return *this;
+}

@@ -4,5 +4,5 @@ Circle::Circle(const Point& center, float radius) : m_center(center), m_radius(r
 
 bool Circle::contains_point(const Point &point) const
 {
-    return length(m_center - point) <= m_radius;
+    return length(m_center - point) < m_radius;
 }

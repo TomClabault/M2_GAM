@@ -23,8 +23,26 @@ public:
     static float orientation_test(const Point& a, const Point& b, const Point& c);
     static int is_point_in_triangle(const Point& point_to_test, const Point& a, const Point& b, const Point& c);
 
+    double operator[] (int index);
+
+    Point& operator/=(double k);
     friend bool operator==(const Point& a, const Point& b);
     friend std::ostream& operator<<(std::ostream& os, const Point& point);
 };
+
+inline Point operator*(const Point& p, double k)
+{
+    return Point(p.x * k, p.y * k, p.z * k);
+}
+
+inline Point operator*(double k, const Point& p)
+{
+    return p * k;
+}
+
+inline Point operator*(const Point& p, const Point& p2)
+{
+    return Point(p.x + p2.x, p.y + p2.y, p.z + p2.z);
+}
 
 #endif // POINT_H

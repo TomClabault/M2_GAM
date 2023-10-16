@@ -1,6 +1,9 @@
 #include "mesh.h"
 #include "segment.h"
 
+#include <iostream>
+#include <queue>
+
 Mesh::Iterator_on_faces::Iterator_on_faces(Mesh& mesh, bool past_the_end)
 {
     m_mesh = &mesh;
@@ -338,7 +341,7 @@ std::pair<int, int> Mesh::get_faces_indices_of_edge(std::pair<int, int> vertex_i
     for (; faces_circulator != faces_circulator_end; faces_circulator++)
     {
         Face& current_face = *faces_circulator;
-        if (current_face.contains_global_vertex_index(vertex_index_pair.first)
+            if (current_face.contains_global_vertex_index(vertex_index_pair.first)
          && current_face.contains_global_vertex_index(vertex_index_pair.second))
         {
             first_face_index = faces_circulator.get_current_face_index();
@@ -355,15 +358,25 @@ std::pair<int, int> Mesh::get_faces_indices_of_edge(std::pair<int, int> vertex_i
     return std::make_pair(first_face_index, second_face_index);
 }
 
+Point Mesh::barycenter_of_face(int face_index) const
+{
+    return barycenter_of_face(m_faces[face_index]);
+}
+
 Point Mesh::barycenter_of_face(const Face &face) const
 {
     return (m_vertices[face.m_a].get_point() + m_vertices[face.m_b].get_point() + m_vertices[face.m_c].get_point()) / 3;
 }
 
+std::vector<std::pair<int, int>> Mesh::get_edges_of_face(const Face& face)
+{
+    return std::vector<std::pair<int, int>> {std::make_pair(face.m_a, face.m_b),
+                                             std::make_pair(face.m_b, face.m_c),
+                                             std::make_pair(face.m_c, face.m_a)};
+}
+
 Circle Mesh::get_circumscribed_circle_of_face(const Face &face) const
 {
-    Point circle_center;
-
     Point point_a, point_b, point_c;
     point_a = m_vertices[face.m_a].get_point();
     point_b = m_vertices[face.m_b].get_point();
@@ -373,29 +386,39 @@ Circle Mesh::get_circumscribed_circle_of_face(const Face &face) const
     Vector BC = point_c - point_b;
     Vector CA = point_a - point_c;
 
-    float tan_A, tan_B, tan_C;
-    tan_A = length(cross(AB, -CA)) / dot(AB, -CA);
-    tan_B = length(cross(BC, -AB)) / dot(BC, -AB);
-    tan_C = length(cross(CA, -BC)) / dot(CA, -BC);
+    double sin_A, sin_B, sin_C;
 
-    circle_center = Point(tan_B + tan_C, tan_C + tan_A, tan_A + tan_B);
+    sin_A = cross(AB, -CA).z;
+    sin_B = cross(BC, -AB).z;
+    sin_C = cross(CA, -BC).z;
 
+    double dot_A = dot(AB, -CA);
+    double dot_B = dot(BC, -AB);
+    double dot_C = dot(CA, -BC);
+    double prod_A = dot_B * dot_C;
+    double prod_B = dot_A * dot_C;
+    double prod_C = dot_A * dot_B;
+
+    //TODO les cercles sont pas bons, cf. geogebra
+    Point barycentric_coords = Point(sin_B * prod_B + sin_C * prod_C, sin_C * prod_C + sin_A * prod_A, sin_A * prod_A + sin_B * prod_B);
+    barycentric_coords /= (barycentric_coords[0] + barycentric_coords[1] + barycentric_coords[2]);
+
+    Point circle_center = Point(barycentric_coords[0] * point_a + barycentric_coords[1] * point_b + barycentric_coords[2] * point_c);
     return Circle(circle_center, length(circle_center - point_a));
 }
 
 void Mesh::face_split(const int face_index, const Point& new_point)
 {
-
-    Face current_face_copy = m_faces[face_index];
+    Face face_0_copy = m_faces[face_index];
     Face& new_face0 = m_faces[face_index];
     Face new_face1, new_face2;
 
     int new_face1_index = m_faces.size();
     int new_face2_index = m_faces.size() + 1;
 
-    int face_touching_new_face_0 = current_face_copy.opposing_face(1);
-    int face_touching_new_face_1 = current_face_copy.opposing_face(2);
-    int face_touching_new_face_2 = current_face_copy.opposing_face(0);
+    int face_touching_new_face_0 = face_0_copy.opposing_face(1);
+    int face_touching_new_face_1 = face_0_copy.opposing_face(2);
+    int face_touching_new_face_2 = face_0_copy.opposing_face(0);
 
     m_vertices.push_back(Vertex(face_index, new_point));
 
@@ -406,13 +429,13 @@ void Mesh::face_split(const int face_index, const Point& new_point)
     new_face1.m_a = m_vertices.size() - 1;
     new_face2.m_a = m_vertices.size() - 1;
 
-    new_face0.m_b = current_face_copy.m_c;
-    new_face1.m_b = current_face_copy.m_a;
-    new_face2.m_b = current_face_copy.m_b;
+    new_face0.m_b = face_0_copy.m_c;
+    new_face1.m_b = face_0_copy.m_a;
+    new_face2.m_b = face_0_copy.m_b;
 
-    new_face0.m_c = current_face_copy.m_a;
-    new_face1.m_c = current_face_copy.m_b;
-    new_face2.m_c = current_face_copy.m_c;
+    new_face0.m_c = face_0_copy.m_a;
+    new_face1.m_c = face_0_copy.m_b;
+    new_face2.m_c = face_0_copy.m_c;
 
 
 
@@ -446,20 +469,26 @@ void Mesh::face_split(const int face_index, const Point& new_point)
     if (vertex_opposing_new_face_2 != -1)
         m_faces[face_touching_new_face_2].opposing_face(vertex_opposing_new_face_2) = new_face2_index;
 
+    //If this vertex (the vertex shared by the new face1 and new face2 and not the point we just)
+    //inserted was pointing to face 0, the face 0 is now too far away so this vertex is going to
+    //have to point to another adjacent face (we'll give face1_index but it could also have been
+    //face2 index)
+//    Vertex & vertex = m_vertices[face_0_copy.m_b];
+//    if (vertex.get_adjacent_face_index() == face_index)
+//        vertex.set_adjacent_face_index(new_face1_index);
+
     m_faces.push_back(new_face1);
     m_faces.push_back(new_face2);
 }
 
-void Mesh::edge_flip(const std::pair<int, int>& vertex_index_pair)
+std::vector<std::pair<int, int>> Mesh::edge_flip(const std::pair<int, int>& vertex_index_pair)
 {
     std::pair<int, int> faces_indices = get_faces_indices_of_edge(vertex_index_pair);
-    assert(faces_indices.first != -1);
-    assert(faces_indices.second != -1);
 
-    edge_flip(faces_indices.first, faces_indices.second);
+    return edge_flip(faces_indices.first, faces_indices.second);
 }
 
-void Mesh::edge_flip(const int face_0_index, const int face_1_index)
+std::vector<std::pair<int, int>> Mesh::edge_flip(const int face_0_index, const int face_1_index)
 {
     Face face_0_copy = m_faces[face_0_index];
     Face face_1_copy = m_faces[face_1_index];
@@ -470,6 +499,27 @@ void Mesh::edge_flip(const int face_0_index, const int face_1_index)
     int local_vertex_on_face_0_opposing_to_face_1 = face_0_copy.find_local_vertex_index_with_opposing_face(face_1_index);
     int local_vertex_on_face_1_opposing_to_face_0 = face_1_copy.find_local_vertex_index_with_opposing_face(face_0_index);
 
+    //The edges that are going to be impacted by the flipping of the edge given in parameter
+    std::vector<std::pair<int, int>> impacted_edges;
+    impacted_edges.push_back(std::make_pair(face_0.global_index_of_local_vertex_index((local_vertex_on_face_0_opposing_to_face_1 + 0) % 3),
+                                            face_0.global_index_of_local_vertex_index((local_vertex_on_face_0_opposing_to_face_1 + 1) % 3)));
+    impacted_edges.push_back(std::make_pair(face_0.global_index_of_local_vertex_index((local_vertex_on_face_0_opposing_to_face_1 + 2) % 3),
+                                            face_0.global_index_of_local_vertex_index((local_vertex_on_face_0_opposing_to_face_1 + 0) % 3)));
+
+    impacted_edges.push_back(std::make_pair(face_1.global_index_of_local_vertex_index((local_vertex_on_face_1_opposing_to_face_0 + 0) % 3),
+                                            face_1.global_index_of_local_vertex_index((local_vertex_on_face_1_opposing_to_face_0 + 1) % 3)));
+    impacted_edges.push_back(std::make_pair(face_1.global_index_of_local_vertex_index((local_vertex_on_face_1_opposing_to_face_0 + 2) % 3),
+                                            face_1.global_index_of_local_vertex_index((local_vertex_on_face_1_opposing_to_face_0 + 0) % 3)));
+
+    if (local_vertex_on_face_0_opposing_to_face_1 == -1
+     || local_vertex_on_face_1_opposing_to_face_0 == -1)
+    {
+        //The two faces are not adjacent, they do not form an edge
+
+        std::cerr << "The two faces [" << face_0_index << ", " << face_1_index << "] given to edge_flip do not form an edge" << std::endl;
+        return std::vector<std::pair<int, int>>();
+    }
+
     int local_vertex1_on_face_0 = (local_vertex_on_face_0_opposing_to_face_1 + 1) % 3;
     int local_vertex2_on_face_0 = (local_vertex1_on_face_0 + 1) % 3;
     int local_vertex2_on_face_1 = (local_vertex_on_face_1_opposing_to_face_0 + 1) % 3;
@@ -478,9 +528,7 @@ void Mesh::edge_flip(const int face_0_index, const int face_1_index)
     face_0.global_index_of_local_vertex_index(local_vertex1_on_face_0) = face_1_copy.global_index_of_local_vertex_index(local_vertex_on_face_1_opposing_to_face_0);
     face_1.global_index_of_local_vertex_index(local_vertex2_on_face_1) = face_0_copy.global_index_of_local_vertex_index(local_vertex_on_face_0_opposing_to_face_1);
 
-    int local_vertex0_on_face_0 = local_vertex1_on_face_0 - 1;
-    if (local_vertex0_on_face_0 == -1)
-        local_vertex0_on_face_0 = 2;
+    int local_vertex0_on_face_0 = (local_vertex1_on_face_0 + 2) % 3;
 
     int face_2_index = face_0_copy.opposing_face(local_vertex1_on_face_0);
     int face_3_index = face_1_copy.opposing_face(local_vertex1_on_face_1);
@@ -488,7 +536,7 @@ void Mesh::edge_flip(const int face_0_index, const int face_1_index)
     face_0.opposing_face((local_vertex0_on_face_0 + 1) % 3) = face_2_index;
     face_0.opposing_face((local_vertex0_on_face_0 + 2) % 3) = face_1_index;
 
-    int face_4_index = face_0_copy.opposing_face(local_vertex2_on_face_1);
+    int face_4_index = face_1_copy.opposing_face(local_vertex2_on_face_1);
     int face_5_index = face_0_copy.opposing_face(local_vertex2_on_face_0);
     face_1.opposing_face(local_vertex1_on_face_1) = face_0_index;
     face_1.opposing_face((local_vertex1_on_face_1 + 1) % 3) = face_5_index;
@@ -507,9 +555,10 @@ void Mesh::edge_flip(const int face_0_index, const int face_1_index)
     Vertex& vertex2_on_face_0 = m_vertices[global_index_of_vertex2_on_face_0];
     Vertex& vertex0_on_face_1 = m_vertices[global_index_of_vertex0_on_face_1];
 
-    //If the first vertex on the edge between the face that have been flipped was pointing to one of the two
+    //If the first vertex on the edge between the faces that have been flipped was pointing to one of the two
     //faces, we're going to have to check whether the face that it was pointing to is still adjacent to the vertex
     bool was_pointing_to_face_0 = false;
+    bool was_pointing_to_face_1 = false;
     if (vertex2_on_face_0.get_adjacent_face_index() == face_0_index)
     {
         was_pointing_to_face_0 = true;
@@ -522,23 +571,25 @@ void Mesh::edge_flip(const int face_0_index, const int face_1_index)
             if(face_0.global_index_of_local_vertex_index(i) == global_index_of_vertex2_on_face_0)
                 //We found the vertex on the flipped face so there's nothing to update, the vertex is still
                 //adjacent to the flipped face
-                return;
+                return impacted_edges;
         }
 
         //We didn't find the vertex on the flipped face. This means
     }
     else if (vertex2_on_face_0.get_adjacent_face_index() == face_1_index)
     {
+        was_pointing_to_face_1 = true;
+
         for (int i = 0; i < 3; i++)
             if(face_1.global_index_of_local_vertex_index(i) == global_index_of_vertex2_on_face_0)
-                return;
+                return impacted_edges;
     }
 
     if (was_pointing_to_face_0)
         //Because the face 0 is no longer adjacent the vertex, this means that the vertex has to be pointing
         //to the other face
         vertex2_on_face_0.set_adjacent_face_index(face_1_index);
-    else //was_pointing_to_face_1
+    else if (was_pointing_to_face_1)//was_pointing_to_face_1
         vertex2_on_face_0.set_adjacent_face_index(face_0_index);
 
 
@@ -557,24 +608,28 @@ void Mesh::edge_flip(const int face_0_index, const int face_1_index)
             if(face_0.global_index_of_local_vertex_index(i) == global_index_of_vertex0_on_face_1)
                 //We found the vertex on the flipped face so there's nothing to update, the vertex is still
                 //adjacent to the flipped face
-                return;
+                return impacted_edges;
         }
 
         //We didn't find the vertex on the flipped face. This means
     }
     else if (vertex0_on_face_1.get_adjacent_face_index() == face_1_index)
     {
+        was_pointing_to_face_1 = true;
+
         for (int i = 0; i < 3; i++)
             if(face_1.global_index_of_local_vertex_index(i) == global_index_of_vertex0_on_face_1)
-                return;
+                return impacted_edges;
     }
 
     if (was_pointing_to_face_0)
         //Because the face 0 is no longer adjacent the vertex, this means that the vertex has to be pointing
         //to the other face
         vertex0_on_face_1.set_adjacent_face_index(face_1_index);
-    else //was_pointing_to_face_1
+    else if (was_pointing_to_face_1)
         vertex0_on_face_1.set_adjacent_face_index(face_0_index);
+
+    return impacted_edges;
 }
 
 void Mesh::insert_point_2D(const Point &point)
@@ -595,19 +650,25 @@ void Mesh::insert_point_2D(const Point &point)
         if (edge.intersect(from_to_segment))
         {
             current_face_index = current_face.opposing_face((i + 2) % 3);
+            if (current_face_index == -1)
+                break;
+
             current_face = m_faces[current_face_index];
 
             i = 0;
         }
     }
 
-    Point a, b, c;
-    a = m_vertices[current_face.m_a].get_point();
-    b = m_vertices[current_face.m_b].get_point();
-    c = m_vertices[current_face.m_c].get_point();
+    if (current_face_index != -1)
+    {
+        Point a, b, c;
+        a = m_vertices[current_face.m_a].get_point();
+        b = m_vertices[current_face.m_b].get_point();
+        c = m_vertices[current_face.m_c].get_point();
 
-    if (Point::is_point_in_triangle(point, a, b, c))
-        face_split(current_face_index, point);
+        if (Point::is_point_in_triangle(point, a, b, c))
+            face_split(current_face_index, point);
+    }
     else
         insert_outside_convex_hull_2D(point);
 }
@@ -621,6 +682,7 @@ bool Mesh::is_edge_locally_delaunay(const std::pair<int, int> two_vertex_indices
 
 bool Mesh::is_edge_locally_delaunay(int face1_index, int face2_index)
 {
+    //Edge on the convex hull
     if (face1_index == -1 || face2_index == -1)
         return true;
 
@@ -640,19 +702,53 @@ bool Mesh::is_edge_locally_delaunay(int face1_index, int face2_index)
 
 void Mesh::delaunayize_lawson()
 {
-    std::vector<std::pair<int, int>> to_flip;
+    std::queue<std::pair<int, int>> to_flip;
+    //Set to check whether an edge is already in the queue to be flipped
+    std::unordered_set<std::pair<int, int>, Mesh::pair_hash> to_flip_unique;
 
-    do
+    for (Face& face : m_faces)
     {
-        for (auto edge = edges_begin(); edge != edges_past_the_end(); edge++)
-            if (!is_edge_locally_delaunay(*edge))
-                to_flip.push_back(*edge);
+        std::vector<std::pair<int, int>> edges_of_face = get_edges_of_face(face);
+        for (std::pair<int, int>& edge : edges_of_face)
+        {
+            std::pair<int, int> edge_reordered = std::make_pair(std::min(edge.first, edge.second), std::max(edge.first, edge.second));
 
-        for (std::pair<int, int> edge_to_flip : to_flip)
-            edge_flip(edge_to_flip);
+            //This edge isn't alredy in the queue to be flipped
+            if (to_flip_unique.find(edge_reordered) == to_flip_unique.end())
+            {
+                to_flip.push(edge_reordered);
+                to_flip_unique.insert(edge_reordered);
+            }
+        }
+    }
 
-        to_flip.clear();
-    } while (!to_flip.empty());
+    int debug_index = 0;
+    while (!to_flip.empty())
+    {
+        debug_index++;
+        std::pair<int, int> edge_to_flip = to_flip.front();
+        to_flip_unique.erase(to_flip_unique.find(edge_to_flip));
+        to_flip.pop();
+        //if (debug_index == 4)
+//            break;
+
+        if (!is_edge_locally_delaunay(edge_to_flip))//If the edge still needs to be flipped
+        {
+            std::vector<std::pair<int, int>> impacted_edges = edge_flip(edge_to_flip);
+
+            for (std::pair<int, int>& new_edge_to_flip : impacted_edges)
+            {
+                std::pair<int, int> edge_reordered = std::make_pair(std::min(new_edge_to_flip.first, new_edge_to_flip.second), std::max(new_edge_to_flip.first, new_edge_to_flip.second));
+
+                //This edge isn't alredy in the queue to be flipped
+                if (to_flip_unique.find(edge_reordered) == to_flip_unique.end())
+                {
+                    to_flip.push(edge_reordered);
+                    to_flip_unique.insert(edge_reordered);
+                }
+            }
+        }
+    }
 }
 
 void Mesh::insert_outside_convex_hull_2D(const Point &point)
@@ -724,7 +820,6 @@ void Mesh::insert_outside_convex_hull_2D(const Point &point)
 
             Face new_face = Face(new_vertex_index, convex_hull_edge.second, convex_hull_edge.first, convex_hull_edge_face_index, -1, -1);
             int new_face_index = m_faces.size() + new_faces_to_add.size();
-            new_faces_to_add.push_back(new_face);
 
             //We just created a new face where there was nothing before so we're going to
             //update the opposing face of the vertex that was pointing to -1 before
@@ -755,6 +850,7 @@ void Mesh::insert_outside_convex_hull_2D(const Point &point)
                 //devrait pointer sur -1 et pas 4
                 //////////////
                 face_of_opposing_vertex.opposing_face(face_of_opposing_vertex.local_index_of_global_vertex_index(edge_1_find->second.first)) = new_face_index;
+                new_face.opposing_face(new_face.local_index_of_global_vertex_index(convex_hull_edge.second)) = face_index;
             }
             else
                 new_edges_to_vertex_to_update_and_face.insert(std::make_pair(new_edge_1, std::make_pair(convex_hull_edge.second, new_face_index)));
@@ -765,11 +861,15 @@ void Mesh::insert_outside_convex_hull_2D(const Point &point)
             {
                 int face_index = edge_2_find->second.second;
                 Face& opposing_vertex_face = new_faces_to_add[face_index - m_faces.size()];
+
                 opposing_vertex_face.opposing_face(opposing_vertex_face.local_index_of_global_vertex_index(edge_2_find->second.first)) = new_face_index;
+                new_face.opposing_face(new_face.local_index_of_global_vertex_index(convex_hull_edge.first)) = face_index;
             }
             else
                 new_edges_to_vertex_to_update_and_face.insert(std::make_pair(new_edge_2, std::make_pair(convex_hull_edge.first, new_face_index)));
-            }
+
+            new_faces_to_add.push_back(new_face);
+        }
         else
             break;
     }

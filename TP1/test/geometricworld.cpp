@@ -20,25 +20,44 @@ void GeometricWorld::load_off(const char* filepath)
     _mesh.add_vertex(Vertex(0, Point(0.5, 0.5, 0)));
     _mesh.add_vertex(Vertex(1, Point(1.5, 0.25, 0)));
     _mesh.add_vertex(Vertex(2, Point(-0.5, 0.25, 0)));
+    //_mesh.add_vertex(Vertex(2, Point(0.5, -0.5, 0)));
 
     _mesh.add_face(Face(0, 1, 2, 1, 2, -1));
     _mesh.add_face(Face(1, 3, 2, -1, 0, -1));
     _mesh.add_face(Face(0, 2, 4, -1, -1, 0));
+//    _mesh.add_face(Face(0, 1, 2, 1, 2, 3));
+//    _mesh.add_face(Face(1, 3, 2, -1, 0, 4));
+//    _mesh.add_face(Face(0, 2, 4, -1, -1, 0));
+//    _mesh.add_face(Face(5, 1, 0, 0, -1, 4));
+//    _mesh.add_face(Face(5, 3, 1, 1, 3, -1));
+
 
     auto start = _mesh.incident_faces(0);
     auto end = _mesh.incident_faces_past_the_end();
 
     for (; start != end; ++start)
-    {
         std::cout << *start << std::endl;
-    }
 
-    _mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0));
-    _mesh.insert_outside_convex_hull_2D(Point(-0.5, -0.6, 0));
-    _mesh.insert_outside_convex_hull_2D(Point(1.0, -0.6, 0));
+    _mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0)); //5
+    _mesh.insert_outside_convex_hull_2D(Point(-0.5, -0.6, 0));//6
+    _mesh.insert_outside_convex_hull_2D(Point(1.0, -0.6, 0)); //7
+    _mesh.insert_outside_convex_hull_2D(Point(2.0, 0, 0));    //8
+    _mesh.insert_outside_convex_hull_2D(Point(-2.0, 0, 0));   //9
+    _mesh.insert_outside_convex_hull_2D(Point(0.0, -2.0, 0)); //10
+    _mesh.insert_outside_convex_hull_2D(Point(0.0, 2.0, 0));  //11
+    _mesh.insert_outside_convex_hull_2D(Point(3.0, 3.0, 0));  //11
 
-    //_mesh.delaunayize_lawson();
-    //precompute_mesh_curvature();
+    _mesh.face_split(0, _mesh.barycenter_of_face(0));
+
+    _mesh.delaunayize_lawson();
+
+//    for (Face& face : _mesh.m_faces)
+//    {
+//        if (!_mesh.is_edge_locally_delaunay(std::make_pair(face.global_index_of_local_vertex_index(0), face.global_index_of_local_vertex_index(1)))
+//                || !_mesh.is_edge_locally_delaunay(std::make_pair(face.global_index_of_local_vertex_index(1), face.global_index_of_local_vertex_index(2)))
+//                || !_mesh.is_edge_locally_delaunay(std::make_pair(face.global_index_of_local_vertex_index(2), face.global_index_of_local_vertex_index(0))))
+//            std::cout << "nope" << std::endl;
+//    }
 }
 
 void GeometricWorld::precompute_mesh_curvature()
