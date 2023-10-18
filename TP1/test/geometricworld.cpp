@@ -10,21 +10,35 @@ void glPointDraw(const Point & p) {
 
 void GeometricWorld::load_off(const char* filepath)
 {
+    //Exemple simple de boucle infinie lors de l'application de l'algorithme de Lawnson
+    //à cause d'une face dégénérée
+//    std::srand(5975);
+//    for (int i = 0; i < 5; i++)
+//    {
+//        double x = std::rand() / (double)RAND_MAX;
+//        double y = std::rand() / (double)RAND_MAX;
+
+//        _mesh.insert_point_2D(Point(x, y, 0), true);
+//        _mesh.save_as_off("a_random_mesh" + std::to_string(i) + ".off");
+//    }
+
     //_mesh = OffReader::read_off(filepath);
     //std::cout << std::filesystem::current_path() << std::endl;
     //_mesh = OffReader::read_off("cube_maillage_triangles.off");
     //_mesh = OffReader::read_off("queen.off");
+    _mesh.insert_point_cloud("../test/data/alpes_random_2.txt");
+    _mesh.scale_to_min_max_points(Point(-3, -3, -3), Point(3, 3, 3));
 
-    _mesh.add_vertex(Vertex(0, Point(0, 0, 0)));
-    _mesh.add_vertex(Vertex(0, Point(1, 0, 0)));
-    _mesh.add_vertex(Vertex(0, Point(0.5, 0.5, 0)));
-    _mesh.add_vertex(Vertex(1, Point(1.5, 0.25, 0)));
-    _mesh.add_vertex(Vertex(2, Point(-0.5, 0.25, 0)));
+    //_mesh.add_vertex(Vertex(0, Point(0, 0, 0)));
+    //_mesh.add_vertex(Vertex(0, Point(1, 0, 0)));
+    //_mesh.add_vertex(Vertex(0, Point(0.5, 0.5, 0)));
+    //_mesh.add_vertex(Vertex(1, Point(1.5, 0.25, 0)));
+    //_mesh.add_vertex(Vertex(2, Point(-0.5, 0.25, 0)));
     //_mesh.add_vertex(Vertex(2, Point(0.5, -0.5, 0)));
 
-    _mesh.add_face(Face(0, 1, 2, 1, 2, -1));
-    _mesh.add_face(Face(1, 3, 2, -1, 0, -1));
-    _mesh.add_face(Face(0, 2, 4, -1, -1, 0));
+    //_mesh.add_face(Face(0, 1, 2, 1, 2, -1));
+    //_mesh.add_face(Face(1, 3, 2, -1, 0, -1));
+    //_mesh.add_face(Face(0, 2, 4, -1, -1, 0));
 //    _mesh.add_face(Face(0, 1, 2, 1, 2, 3));
 //    _mesh.add_face(Face(1, 3, 2, -1, 0, 4));
 //    _mesh.add_face(Face(0, 2, 4, -1, -1, 0));
@@ -32,32 +46,18 @@ void GeometricWorld::load_off(const char* filepath)
 //    _mesh.add_face(Face(5, 3, 1, 1, 3, -1));
 
 
-    auto start = _mesh.incident_faces(0);
-    auto end = _mesh.incident_faces_past_the_end();
+    //_mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0)); //5
+    //_mesh.insert_outside_convex_hull_2D(Point(-0.5, -0.6, 0));//6
+    //_mesh.insert_outside_convex_hull_2D(Point(1.0, -0.6, 0)); //7
+    //_mesh.insert_outside_convex_hull_2D(Point(2.0, 0, 0));    //8
+    //_mesh.insert_outside_convex_hull_2D(Point(-2.0, 0, 0));   //9
+    //_mesh.insert_outside_convex_hull_2D(Point(0.0, -2.0, 0)); //10
+    //_mesh.insert_outside_convex_hull_2D(Point(0.0, 2.0, 0));  //11
+    //_mesh.insert_outside_convex_hull_2D(Point(3.0, 3.0, 0));  //11
 
-    for (; start != end; ++start)
-        std::cout << *start << std::endl;
+    //_mesh.delaunayize_lawson();
 
-    _mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0)); //5
-    _mesh.insert_outside_convex_hull_2D(Point(-0.5, -0.6, 0));//6
-    _mesh.insert_outside_convex_hull_2D(Point(1.0, -0.6, 0)); //7
-    _mesh.insert_outside_convex_hull_2D(Point(2.0, 0, 0));    //8
-    _mesh.insert_outside_convex_hull_2D(Point(-2.0, 0, 0));   //9
-    _mesh.insert_outside_convex_hull_2D(Point(0.0, -2.0, 0)); //10
-    _mesh.insert_outside_convex_hull_2D(Point(0.0, 2.0, 0));  //11
-    _mesh.insert_outside_convex_hull_2D(Point(3.0, 3.0, 0));  //11
-
-    _mesh.face_split(0, _mesh.barycenter_of_face(0));
-
-    _mesh.delaunayize_lawson();
-
-//    for (Face& face : _mesh.m_faces)
-//    {
-//        if (!_mesh.is_edge_locally_delaunay(std::make_pair(face.global_index_of_local_vertex_index(0), face.global_index_of_local_vertex_index(1)))
-//                || !_mesh.is_edge_locally_delaunay(std::make_pair(face.global_index_of_local_vertex_index(1), face.global_index_of_local_vertex_index(2)))
-//                || !_mesh.is_edge_locally_delaunay(std::make_pair(face.global_index_of_local_vertex_index(2), face.global_index_of_local_vertex_index(0))))
-//            std::cout << "nope" << std::endl;
-//    }
+    //_mesh.face_split(0, _mesh.barycenter_of_face(0), true);
 }
 
 void GeometricWorld::precompute_mesh_curvature()

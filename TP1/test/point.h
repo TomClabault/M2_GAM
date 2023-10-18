@@ -30,6 +30,16 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const Point& point);
 };
 
+inline Point min(const Point& a, const Point& b)
+{
+    return Point(std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z));
+}
+
+inline Point max(const Point& a, const Point& b)
+{
+    return Point(std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z));
+}
+
 inline Point operator*(const Point& p, double k)
 {
     return Point(p.x * k, p.y * k, p.z * k);
@@ -43,6 +53,11 @@ inline Point operator*(double k, const Point& p)
 inline Point operator*(const Point& p, const Point& p2)
 {
     return Point(p.x + p2.x, p.y + p2.y, p.z + p2.z);
+}
+
+inline Point operator+(const Point& p, const Vector& v)
+{
+    return Point(p.x + v.x, p.y + v.y, p.z + v.z);
 }
 
 #endif // POINT_H

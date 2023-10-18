@@ -175,26 +175,34 @@ public:
     Iterator_on_convex_hull_edges_in_order convex_hull_edges_in_order_begin(Mesh::Iterator_on_convex_hull_edges_in_order::Convex_hull_edge& current_edge);
     Iterator_on_convex_hull_edges_in_order convex_hull_edges_in_order_past_the_end();
 
+    void save_as_obj(const std::string& filepath) const;
+    void save_as_off(const std::string& filepath) const;
+    void insert_point_cloud(const std::string &filepath);
+
     double face_area(const Face& face);
     Point barycenter_of_face(int face_index) const;
     Point barycenter_of_face(const Face& face) const;
     std::vector<std::pair<int, int>> get_edges_of_face(const Face& face);
     Circle get_circumscribed_circle_of_face(const Face& face) const;
+    std::pair<int, int> get_faces_indices_of_edge(std::pair<int, int> two_vertices_indices);
 
     Vector laplacian_mean_curvature(const int vertex_index);
 
-    std::pair<int, int> get_faces_indices_of_edge(std::pair<int, int> two_vertices_indices);
-    void face_split(const int face_index, const Point& new_point);
+    void face_split(const int face_index, const Point& new_point, bool apply_lawson_after_insertion = true);
+    void check_and_flip_multiple_edges(std::vector<std::pair<int, int>>& edges_to_flip);
     std::vector<std::pair<int, int>> edge_flip(const std::pair<int, int>& vertex_index_pair);
     std::vector<std::pair<int, int>> edge_flip(const int face_index_1, const int face_index_2);
-    void insert_point_2D(const Point& point);
+    void insert_point_2D(const Point& point, bool apply_lawson_after_insertion);
+    bool point_inside_triangulation_brute_force(const Point& point);
     bool is_edge_locally_delaunay(int face1_index, int face2_index);
     bool is_edge_locally_delaunay(const std::pair<int, int> two_vertex_indices);
 
     void delaunayize_lawson();
 
     void compute_convex_hull_edges();
-    void insert_outside_convex_hull_2D(const Point& point);
+    void insert_outside_convex_hull_2D(const Point& point, bool apply_lawson_after_insertion = true);
+
+    void scale_to_min_max_points(const Point& min, const Point& max);
 
     std::vector<Face> m_faces;
     std::vector<Vertex> m_vertices;
