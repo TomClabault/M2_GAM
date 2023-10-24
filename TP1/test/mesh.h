@@ -3,6 +3,7 @@
 
 #include "circle.h"
 #include "face.h"
+#include "segment.h"
 #include "vertex.h"
 
 #include <QOpenGLWidget>
@@ -188,6 +189,7 @@ public:
 
     Vector laplacian_mean_curvature(const int vertex_index);
 
+    void edge_split(const std::pair<int, int>& two_vertices);
     void face_split(const int face_index, const Point& new_point, bool apply_lawson_after_insertion = true);
     void check_and_flip_multiple_edges(std::vector<std::pair<int, int>>& edges_to_flip);
     std::vector<std::pair<int, int>> edge_flip(const std::pair<int, int>& vertex_index_pair);
@@ -198,6 +200,7 @@ public:
     bool is_edge_locally_delaunay(const std::pair<int, int> two_vertex_indices);
 
     void delaunayize_lawson();
+    void ruppert(const std::vector<Segment> &constraint_segments);
 
     void compute_convex_hull_edges();
     void insert_outside_convex_hull_2D(const Point& point, bool apply_lawson_after_insertion = true);

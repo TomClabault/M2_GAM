@@ -10,7 +10,8 @@ public:
 
     bool intersect(const Segment& other) const;
 
-private:
+    friend bool operator==(const Segment& a, const Segment& b);
+
     Point a, b;
 };
 

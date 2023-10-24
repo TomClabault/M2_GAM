@@ -12,3 +12,8 @@ bool Segment::intersect(const Segment &other) const
     return (orientation_first_test != orientation_second_test)
         && (orientation_third_test != orientation_fourth_test);
 }
+
+bool operator==(const Segment& a, const Segment& b)
+{
+    return (a.a == b.a && a.b == b.b) || (a.a == b.b && a.b == b.a);
+}

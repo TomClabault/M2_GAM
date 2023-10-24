@@ -1,6 +1,7 @@
 #include "mesh.h"
 #include "segment.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <queue>
@@ -394,6 +395,57 @@ Vector Mesh::laplacian_mean_curvature(const int vertex_index)
     } while (circulator != circulator_end);
 
     return laplacien_sum / (2 * neighbor_faces_area_sum);
+}
+
+void Mesh::edge_split(const std::pair<int, int>& two_vertices)
+{
+    std::pair<int, int> faces = get_faces_indices_of_edge(two_vertices);
+
+    int face0_index = faces.first;
+    int face1_index = faces.second;
+    Face& face0 = m_faces[face0_index];
+    Face& face1 = m_faces[face1_index];
+    const Face& face0_copy = m_faces[face0_index];
+    const Face& face1_copy = m_faces[face1_index];
+
+    int global_vertex_on_face0_opposing_to_face1 = face0_copy.find_global_vertex_index_with_opposing_face(face1_index);
+    int global_vertex_on_face1_opposing_to_face0 = face1_copy.find_global_vertex_index_with_opposing_face(face0_index);
+    int local_vertex_on_face0_opposing_to_face_1 = face0.local_index_of_global_vertex_index(global_vertex_on_face0_opposing_to_face1);
+    int local_vertex_on_face1_opposing_to_face_0 = face1.local_index_of_global_vertex_index(global_vertex_on_face1_opposing_to_face0);
+
+    //Changing the vertices of the already existing faces
+    int new_vertex_index = m_vertices.size();
+    face0.m_a = new_vertex_index;
+    face1.m_a = new_vertex_index;
+
+    const Point& first_edge_point = m_vertices[two_vertices.first].get_point();
+    const Point& second_edge_point = m_vertices[two_vertices.second].get_point();
+    Vertex new_vertex(face0_index, (first_edge_point + second_edge_point) / 2);
+
+    //Creating the 2 new faces
+    int new_face_2_index = m_faces.size();
+    int new_face_3_index = new_face_2_index + 1;
+    Face new_face_2 = Face(two_vertices.first, global_vertex_on_face1_opposing_to_face0, new_vertex_index,
+                           face1_index, new_face_3_index, face1_copy.opposing_face((local_vertex_on_face1_opposing_to_face_0 + 1) % 3));
+    Face new_face_3 = Face(two_vertices.first, new_vertex_index, global_vertex_on_face0_opposing_to_face1,
+                           face0_index, face0_copy.opposing_face((local_vertex_on_face0_opposing_to_face_1 + 2) % 3), new_face_2_index);
+
+    //Update opposing faces
+    face0.opposing_face(0) = face0_copy.opposing_face(0);
+    face0.opposing_face(1) = new_face_3_index;
+    face0.opposing_face(2) = face1_index;
+
+    face1.opposing_face(0) = face1_copy.opposing_face(0);
+    face1.opposing_face(1) = face0_index;
+    face1.opposing_face(2) = new_face_2_index;
+
+    //Update adjacencies
+    m_vertices[two_vertices.first].set_adjacent_face_index(new_face_2_index);
+    m_vertices[two_vertices.second].set_adjacent_face_index(face0_index);
+
+    m_vertices.push_back(new_vertex);
+    m_faces.push_back(new_face_2);
+    m_faces.push_back(new_face_3);
 }
 
 std::pair<int, int> Mesh::get_faces_indices_of_edge(std::pair<int, int> vertex_index_pair)
@@ -949,6 +1001,55 @@ void Mesh::delaunayize_lawson()
                 }
             }
         }
+    }
+}
+
+void Mesh::ruppert(const std::vector<Segment>& constraint_segments)
+{
+    std::unordered_set<int> constraint_segments_found;
+    int face_index = 0;
+    for (const Face& face : m_faces)
+    {
+        std::pair<int, int> edge1 = std::make_pair(face.m_a, face.m_b);
+        std::pair<int, int> edge2 = std::make_pair(face.m_b, face.m_c);
+        std::pair<int, int> edge3 = std::make_pair(face.m_c, face.m_a);
+
+        Segment face_segment1 = Segment(m_vertices[edge1.first].get_point(), m_vertices[edge1.second].get_point());
+        Segment face_segment2 = Segment(m_vertices[edge2.first].get_point(), m_vertices[edge2.second].get_point());
+        Segment face_segment3 = Segment(m_vertices[edge3.first].get_point(), m_vertices[edge3.second].get_point());
+        //TODO mauvaise complexité, ça serait mieux d'avoir un set des segments
+        //pour pouvoir instant lookup plutot que de faire une grosse boucle a chaque
+        //fois
+
+        //Finding the given constraint segments that are not already in the triangulation
+        for (int segment_index = 0; segment_index < constraint_segments.size(); segment_index++)
+        {
+            const Segment& segment = constraint_segments[segment_index];
+            if (segment == face_segment1 || segment == face_segment2 || segment == face_segment3)
+            {
+                constraint_segments_found.insert(segment_index);
+                break;
+            }
+        }
+        face_index++;
+    }
+
+    //Making a queue from the segments that are not in the triangulation
+    std::queue<Segment> constraint_segments_queue;
+    for (int segment_index = 0; segment_index < constraint_segments.size(); segment_index++)
+        if (constraint_segments_found.find(segment_index) == constraint_segments_found.end())
+            constraint_segments_queue.push(constraint_segments[segment_index]);
+
+    while (!constraint_segments_queue.empty())
+    {
+        const Segment& segment = constraint_segments_queue.front();
+        constraint_segments_queue.pop();
+
+        Point middle_point = (segment.a + segment.b) / 2;
+        insert_point_2D(middle_point, true);
+
+        constraint_segments_queue.push(Segment(segment.a, middle_point));
+        constraint_segments_queue.push(Segment(middle_point, segment.b));
     }
 }
 

@@ -49,14 +49,19 @@ public:
         return (face_index == m_fa) ? 0 : (m_fb == face_index) ? 1 : (face_index == m_fc ? 2 : -1);
     }
 
-    int opposing_face(int index) const
+    int find_global_vertex_index_with_opposing_face(int face_index) const
     {
-        return *(&m_fa + index);
+        return (face_index == m_fa) ? m_a : (m_fb == face_index) ? m_b : (face_index == m_fc ? m_c : -1);
     }
 
-    int& opposing_face(int index)
+    int opposing_face(int local_index) const
     {
-        return *(&m_fa + index);
+        return *(&m_fa + local_index);
+    }
+
+    int& opposing_face(int local_index)
+    {
+        return *(&m_fa + local_index);
     }
 
     int global_index_of_local_vertex_index(int index) const

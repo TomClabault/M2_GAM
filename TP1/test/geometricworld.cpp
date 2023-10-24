@@ -1,4 +1,5 @@
 #include "geometricworld.h"
+#include "segment.h"
 #include "TP1/offreader.h"
 
 #include <iostream>
@@ -26,8 +27,27 @@ void GeometricWorld::load_off(const char* filepath)
     //std::cout << std::filesystem::current_path() << std::endl;
     //_mesh = OffReader::read_off("cube_maillage_triangles.off");
     //_mesh = OffReader::read_off("queen.off");
-    _mesh.insert_point_cloud("../test/data/alpes_random_2.txt");
-    _mesh.scale_to_min_max_points(Point(-3, -3, -3), Point(3, 3, 3));
+    //_mesh.insert_point_cloud("../test/data/alpes_random_2.txt");
+    //_mesh.scale_to_min_max_points(Point(-3, -3, -3), Point(3, 3, 3));
+
+    std::vector<Point> points;
+    points.push_back(Point(0, 0, 0));
+    points.push_back(Point(1, 0, 0));
+    points.push_back(Point(2, 0.5, 0));
+    points.push_back(Point(1.5, 1.5, 0));
+    points.push_back(Point(0.5, 2, 0));
+    points.push_back(Point(-0.5, 2, 0));
+    points.push_back(Point(-0.5, 1, 0));
+
+    for (const Point& point : points)
+        _mesh.insert_point_2D(point, true);
+
+    std::vector<Segment> constraint_segments;
+    for (int i = 0; i < points.size() - 1; i++)
+        constraint_segments.push_back(Segment(points[i + 0], points[i + 1]));
+    constraint_segments.push_back(Segment(Point(0.5, 0.5, 0), Point(0.5, 1.5, 0)));
+
+    _mesh.ruppert(constraint_segments);
 
     //_mesh.add_vertex(Vertex(0, Point(0, 0, 0)));
     //_mesh.add_vertex(Vertex(0, Point(1, 0, 0)));
