@@ -1026,10 +1026,7 @@ void Mesh::ruppert(const std::vector<Segment>& constraint_segments)
         {
             const Segment& segment = constraint_segments[segment_index];
             if (segment == face_segment1 || segment == face_segment2 || segment == face_segment3)
-            {
                 constraint_segments_found.insert(segment_index);
-                break;
-            }
         }
         face_index++;
     }
