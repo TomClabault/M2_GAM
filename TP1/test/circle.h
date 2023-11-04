@@ -10,6 +10,7 @@ public:
 
     bool contains_point(const Point& point) const;
 
+    const Point& get_center() const;
 private:
     Point m_center;
     float m_radius;

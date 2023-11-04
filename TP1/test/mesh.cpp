@@ -971,16 +971,11 @@ void Mesh::delaunayize_lawson()
         }
     }
 
-    int debug_index = 0;
     while (!to_flip.empty())
     {
-        debug_index++;
         std::pair<int, int> edge_to_flip = to_flip.front();
         to_flip_unique.erase(to_flip_unique.find(edge_to_flip));
         to_flip.pop();
-
-        if (debug_index > 1565)
-            save_as_off("flipped_debug_" + std::to_string(debug_index) + ".off");
 
         //If the edge still needs to be flipped (because it may have been put in
         //the queue before but since then, other edges have been flipped which has
@@ -1004,52 +999,132 @@ void Mesh::delaunayize_lawson()
     }
 }
 
-void Mesh::ruppert(const std::vector<Segment>& constraint_segments)
+bool Mesh::segment_in_triangulation(const std::pair<int, int>& segment)
 {
-    std::unordered_set<int> constraint_segments_found;
-    int face_index = 0;
-    for (const Face& face : m_faces)
+    int vertex_rotating_around = segment.first;
+    Circulator_on_faces circulator(*this, m_vertices[vertex_rotating_around]);
+    int current_face_index = circulator.get_current_face_index();
+
+    do
     {
-        std::pair<int, int> edge1 = std::make_pair(face.m_a, face.m_b);
-        std::pair<int, int> edge2 = std::make_pair(face.m_b, face.m_c);
-        std::pair<int, int> edge3 = std::make_pair(face.m_c, face.m_a);
+        const Face& current_face = *circulator;
 
-        Segment face_segment1 = Segment(m_vertices[edge1.first].get_point(), m_vertices[edge1.second].get_point());
-        Segment face_segment2 = Segment(m_vertices[edge2.first].get_point(), m_vertices[edge2.second].get_point());
-        Segment face_segment3 = Segment(m_vertices[edge3.first].get_point(), m_vertices[edge3.second].get_point());
-        //TODO mauvaise complexité, ça serait mieux d'avoir un set des segments
-        //pour pouvoir instant lookup plutot que de faire une grosse boucle a chaque
-        //fois
+        int vertex_rot_around_local = current_face.local_index_of_global_vertex_index(vertex_rotating_around);
 
-        //Finding the given constraint segments that are not already in the triangulation
-        for (int segment_index = 0; segment_index < constraint_segments.size(); segment_index++)
-        {
-            const Segment& segment = constraint_segments[segment_index];
-            if (segment == face_segment1 || segment == face_segment2 || segment == face_segment3)
-            {
-                constraint_segments_found.insert(segment_index);
-                break;
-            }
-        }
-        face_index++;
-    }
+        std::pair<int, int> first_edge = std::make_pair(vertex_rotating_around, current_face.global_index_of_local_vertex_index((vertex_rot_around_local + 1) % 3));
+        std::pair<int, int> second_edge = std::make_pair(vertex_rotating_around, current_face.global_index_of_local_vertex_index((vertex_rot_around_local + 2) % 3));
 
-    //Making a queue from the segments that are not in the triangulation
-    std::queue<Segment> constraint_segments_queue;
-    for (int segment_index = 0; segment_index < constraint_segments.size(); segment_index++)
-        if (constraint_segments_found.find(segment_index) == constraint_segments_found.end())
-            constraint_segments_queue.push(constraint_segments[segment_index]);
+        if (segment.second == first_edge.second || segment.second == second_edge.second)
+            return true;
+
+        ++circulator;
+        current_face_index = circulator.get_current_face_index();
+    } while (current_face_index != -1);
+
+    return false;
+}
+
+bool Mesh::face_respects_minimum_angle(int face_index, float minimum_angle)
+{
+    const Face& face = m_faces[face_index];
+
+    Point A = m_vertices[face.m_a].get_point();
+    Point B = m_vertices[face.m_b].get_point();
+    Point C = m_vertices[face.m_c].get_point();
+
+    Vector AB = normalize(B - A);
+    Vector BC = normalize(C - B);
+    Vector CA = normalize(A - C);
+
+    float angle_A = dot(AB, -CA) * 180 / M_PI;
+    float angle_B = dot(BC, -AB) * 180 / M_PI;
+    float angle_C = dot(CA, -BC) * 180 / M_PI;
+    if (angle_A < minimum_angle
+     || angle_B < minimum_angle
+     || angle_C < minimum_angle)
+        return false;
+
+    return true;
+}
+
+void Mesh::ruppert(const std::vector<std::pair<int, int>>& constraint_segments, float angle_threshold_degrees)
+{
+    std::queue<std::pair<int, int>> constraint_segments_queue;
+    for (const std::pair<int, int> constraint_segment : constraint_segments)
+        if (!segment_in_triangulation(constraint_segment))
+            constraint_segments_queue.push(constraint_segment);
 
     while (!constraint_segments_queue.empty())
     {
-        const Segment& segment = constraint_segments_queue.front();
+        const std::pair<int, int>& segment = constraint_segments_queue.front();
         constraint_segments_queue.pop();
 
-        Point middle_point = (segment.a + segment.b) / 2;
-        insert_point_2D(middle_point, true);
+        edge_split(std::make_pair(segment.first, segment.second));
 
-        constraint_segments_queue.push(Segment(segment.a, middle_point));
-        constraint_segments_queue.push(Segment(middle_point, segment.b));
+        //Index of the new point that has been inserted in the triangulation
+        //thanks to edge_split
+        int middle_point_index = m_vertices.size() - 1;
+        std::pair<int, int> new_segment_1 = std::make_pair(segment.first, middle_point_index);
+        std::pair<int, int> new_segment_2 = std::make_pair(middle_point_index, segment.second);
+        if (!segment_in_triangulation(new_segment_1))
+            constraint_segments_queue.push(new_segment_1);
+        if (!segment_in_triangulation(new_segment_2))
+            constraint_segments_queue.push(new_segment_2);
+    }
+
+    //We're now going to insert points at the center of the circumscribed circle of
+    //triangles that have an angle smaller than the given threshold
+    std::vector<Circle> diametral_circles_of_constraints;
+    for (std::pair<int, int> constraint_segment : constraint_segments)
+    {
+        Point segment_middle_point = (m_vertices[constraint_segment.first].get_point() + m_vertices[constraint_segment.second].get_point()) / 2;
+        diametral_circles_of_constraints.push_back(Circle(segment_middle_point, length(m_vertices[constraint_segment.first].get_point() - segment_middle_point)));
+    }
+
+    std::queue<int> faces_to_subdivide_queue;
+    int face_index = 0;
+    for (const Face& face : m_faces)
+    {
+        if (!face_respects_minimum_angle(face_index, angle_threshold_degrees))
+        {
+            //Checking that the center of the circumscribed circle of the face
+            //isn't falling (encroaching) a constraint segment
+            bool in_circle = false;
+            Circle circumscribed_circle = get_circumscribed_circle_of_face(face);
+            for (const Circle& circle : diametral_circles_of_constraints)
+                if (circle.contains_point(circumscribed_circle.get_center()))
+                {
+                    in_circle = true;
+
+                    break;
+                }
+
+            if (!in_circle)
+                faces_to_subdivide_queue.push(face_index);
+        }
+
+        face_index++;
+    }
+
+    while (!faces_to_subdivide_queue.empty())
+    {
+        int face_to_subdivide_index = faces_to_subdivide_queue.front();
+        const Face& face =  m_faces[face_to_subdivide_index];
+        faces_to_subdivide_queue.pop();
+
+        Circle circumscribed_circle = get_circumscribed_circle_of_face(face);
+        insert_point_2D(circumscribed_circle.get_center(), true);
+
+        int new_face_index_1 = face_to_subdivide_index;
+        int new_face_index_2 = m_faces.size() - 2;
+        int new_face_index_3 = m_faces.size() - 1;
+
+        if (!face_respects_minimum_angle(new_face_index_1, angle_threshold_degrees))
+            faces_to_subdivide_queue.push(new_face_index_1);
+        if (!face_respects_minimum_angle(new_face_index_2, angle_threshold_degrees))
+            faces_to_subdivide_queue.push(new_face_index_2);
+        if (!face_respects_minimum_angle(new_face_index_3, angle_threshold_degrees))
+            faces_to_subdivide_queue.push(new_face_index_3);
     }
 }
 

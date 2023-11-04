@@ -6,3 +6,8 @@ bool Circle::contains_point(const Point &point) const
 {
     return length(m_center - point) < m_radius;
 }
+
+const Point &Circle::get_center() const
+{
+    return m_center;
+}

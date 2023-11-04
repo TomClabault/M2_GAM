@@ -30,12 +30,12 @@ public:
             return -1;
     }
 
-    bool contains_global_vertex_index(int global_vertex_index)
+    bool contains_global_vertex_index(int global_vertex_index) const
     {
         return m_a == global_vertex_index || m_b == global_vertex_index || m_c == global_vertex_index;
     }
 
-    int local_index_of_global_vertex_index(int global_vertex_index)
+    int local_index_of_global_vertex_index(int global_vertex_index) const
     {
         return (m_a == global_vertex_index) ? 0 : (m_b == global_vertex_index) ? 1 : (m_c == global_vertex_index) ? 2 : -1;
     }

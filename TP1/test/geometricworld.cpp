@@ -38,16 +38,17 @@ void GeometricWorld::load_off(const char* filepath)
     points.push_back(Point(0.5, 2, 0));
     points.push_back(Point(-0.5, 2, 0));
     points.push_back(Point(-0.5, 1, 0));
+    points.push_back(Point(0.5, 0.5, 0));
+    points.push_back(Point(0.4, 1.5, 0));
 
     for (const Point& point : points)
         _mesh.insert_point_2D(point, true);
 
-    std::vector<Segment> constraint_segments;
+    std::vector<std::pair<int, int>> constraint_segments;
     for (int i = 0; i < points.size() - 1; i++)
-        constraint_segments.push_back(Segment(points[i + 0], points[i + 1]));
-    constraint_segments.push_back(Segment(Point(0.5, 0.5, 0), Point(0.5, 1.5, 0)));
+        constraint_segments.push_back(std::make_pair(i, i + 1));
 
-    _mesh.ruppert(constraint_segments);
+    _mesh.ruppert(constraint_segments, 20);
 
     //_mesh.add_vertex(Vertex(0, Point(0, 0, 0)));
     //_mesh.add_vertex(Vertex(0, Point(1, 0, 0)));

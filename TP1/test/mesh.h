@@ -104,6 +104,10 @@ public:
         Face& operator*();
         int get_current_face_index() { return m_current_face_index; }
 
+        /**
+         * @brief The increment operators set the current_face_index of the circulator
+         * to -1 if the circulator has circulated on every face around the vertex
+         */
         friend Mesh::Circulator_on_faces& operator++(Mesh::Circulator_on_faces& operand);
         friend Mesh::Circulator_on_faces operator++(Mesh::Circulator_on_faces& operand, int dummy);
 
@@ -189,6 +193,8 @@ public:
 
     Vector laplacian_mean_curvature(const int vertex_index);
 
+    bool segment_in_triangulation(const std::pair<int, int>& segment);
+    bool face_respects_minimum_angle(int face_index, float minimum_angle);
     void edge_split(const std::pair<int, int>& two_vertices);
     void face_split(const int face_index, const Point& new_point, bool apply_lawson_after_insertion = true);
     void check_and_flip_multiple_edges(std::vector<std::pair<int, int>>& edges_to_flip);
@@ -200,7 +206,7 @@ public:
     bool is_edge_locally_delaunay(const std::pair<int, int> two_vertex_indices);
 
     void delaunayize_lawson();
-    void ruppert(const std::vector<Segment> &constraint_segments);
+    void ruppert(const std::vector<std::pair<int, int>> &constraint_segments, float angle_threshold_degrees);
 
     void compute_convex_hull_edges();
     void insert_outside_convex_hull_2D(const Point& point, bool apply_lawson_after_insertion = true);
