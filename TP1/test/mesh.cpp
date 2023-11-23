@@ -296,7 +296,7 @@ void Mesh::save_as_off(const std::string& filepath) const
         output_file << "3 " << face.m_a << " " << face.m_b << " " << face.m_c << std::endl;
 }
 
-void Mesh::insert_point_cloud(const std::string& filepath)
+void Mesh::insert_point_cloud(const std::string& filepath, float point_insertion_ratio)
 {
     std::ifstream input_file(filepath);
     if (!input_file.is_open())
@@ -308,6 +308,7 @@ void Mesh::insert_point_cloud(const std::string& filepath)
     int nb_vertices;
 
     input_file >> nb_vertices;
+    nb_vertices /= point_insertion_ratio;
 
     //Reading all the vertices of the file
     std::vector<double> z_coordinates(nb_vertices);
@@ -1036,9 +1037,9 @@ bool Mesh::face_respects_minimum_angle(int face_index, float minimum_angle)
     Vector BC = normalize(C - B);
     Vector CA = normalize(A - C);
 
-    float angle_A = dot(AB, -CA) * 180 / M_PI;
-    float angle_B = dot(BC, -AB) * 180 / M_PI;
-    float angle_C = dot(CA, -BC) * 180 / M_PI;
+    float angle_A = std::acos(dot(AB, -CA)) * 180 / M_PI;
+    float angle_B = std::acos(dot(BC, -AB)) * 180 / M_PI;
+    float angle_C = std::acos(dot(CA, -BC)) * 180 / M_PI;
     if (angle_A < minimum_angle
      || angle_B < minimum_angle
      || angle_C < minimum_angle)

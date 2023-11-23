@@ -1,3 +1,8 @@
 build*
 .vscode
 *.pro
+Rapport/Rapport.synctex.gz
+Rapport/Rapport.out
+Rapport/Rapport.log
+Rapport/Rapport.aux
+Rapport/Rapport.pdf
