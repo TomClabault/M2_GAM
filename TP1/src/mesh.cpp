@@ -296,7 +296,7 @@ void Mesh::save_as_off(const std::string& filepath) const
         output_file << "3 " << face.m_a << " " << face.m_b << " " << face.m_c << std::endl;
 }
 
-void Mesh::insert_point_cloud(const std::string& filepath, float point_insertion_ratio)
+void Mesh::insert_point_cloud(const std::string& filepath, float point_insertion_ratio, bool do_delaunay)
 {
     std::ifstream input_file(filepath);
     if (!input_file.is_open())
@@ -323,7 +323,7 @@ void Mesh::insert_point_cloud(const std::string& filepath, float point_insertion
         z = 0.0;//We don't want the z coordinate for our usecase
 
         Point point(x, y, z);
-        insert_point_2D(point, true);
+        insert_point_2D(point, do_delaunay);
     }
 
     //Restoring the z coordinates
@@ -416,7 +416,7 @@ void Mesh::edge_split(const std::pair<int, int>& two_vertices)
 
     //Changing the vertices of the already existing faces
     int new_vertex_index = m_vertices.size();
-    face0.m_a = new_vertex_index;
+    face0.m_c = new_vertex_index;
     face1.m_a = new_vertex_index;
 
     const Point& first_edge_point = m_vertices[two_vertices.first].get_point();
@@ -426,7 +426,7 @@ void Mesh::edge_split(const std::pair<int, int>& two_vertices)
     //Creating the 2 new faces
     int new_face_2_index = m_faces.size();
     int new_face_3_index = new_face_2_index + 1;
-    Face new_face_2 = Face(two_vertices.first, global_vertex_on_face1_opposing_to_face0, new_vertex_index,
+    Face new_face_2 = Face(two_vertices.first, new_vertex_index, global_vertex_on_face1_opposing_to_face0,
                            face1_index, new_face_3_index, face1_copy.opposing_face((local_vertex_on_face1_opposing_to_face_0 + 1) % 3));
     Face new_face_3 = Face(two_vertices.first, new_vertex_index, global_vertex_on_face0_opposing_to_face1,
                            face0_index, face0_copy.opposing_face((local_vertex_on_face0_opposing_to_face_1 + 2) % 3), new_face_2_index);

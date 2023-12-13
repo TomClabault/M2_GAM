@@ -11,24 +11,23 @@ void glPointDraw(const Point & p) {
 
 void GeometricWorld::load_off(const char* filepath)
 {
-    //Exemple simple de boucle infinie lors de l'application de l'algorithme de Lawnson
-    //à cause d'une face dégénérée
-    //    std::srand(5975);
-    //    for (int i = 0; i < 5; i++)
-    //    {
-    //        double x = std::rand() / (double)RAND_MAX;
-    //        double y = std::rand() / (double)RAND_MAX;
+    // --------------- Demo terrain --------------- //
+    /*
 
-    //        _mesh.insert_point_2D(Point(x, y, 0), true);
-    //        _mesh.save_as_off("a_random_mesh" + std::to_string(i) + ".off");
-    //    }
+    //Sans Delaunay incrémental
+    //_mesh.insert_point_cloud("../src/data/alpes_random_2.txt", 8, false);
 
-    //_mesh = OffReader::read_off(filepath);
-    //std::cout << std::filesystem::current_path() << std::endl;
-    //_mesh = OffReader::read_off("cube_maillage_triangles.off");
-    //_mesh = OffReader::read_off("queen.off");
-    // _mesh.insert_point_cloud("../test/data/alpes_random_2.txt", 4);
-    // _mesh.scale_to_min_max_points(Point(-3, -3, -3), Point(3, 3, 3));
+    //Avec Delaunay incrémental
+    _mesh.insert_point_cloud("../src/data/alpes_random_2.txt", 8, true);
+
+    _mesh.scale_to_min_max_points(Point(-3, -3, -3), Point(3, 3, 3));
+
+    */
+
+
+
+    // ---------- Demo edge flip et face split ---------- //
+    /*
 
     std::vector<Point> points;
     points.push_back(Point(0, 0, 0));
@@ -38,53 +37,39 @@ void GeometricWorld::load_off(const char* filepath)
     points.push_back(Point(0.5, 2, 0));
     points.push_back(Point(-0.5, 2, 0));
     points.push_back(Point(-0.5, 1, 0));
-    points.push_back(Point(0.5, 0.5, 0));
-    points.push_back(Point(0.4, 1.5, 0));
 
     for (const Point& point : points)
         _mesh.insert_point_2D(point, true);
 
+    //_mesh.edge_flip(std::make_pair(1, 4));
+    _mesh.face_split(0, Point(0.5, 0.5, 0));
+
+    */
+
+
+
+
+
+    // ---------- Demo Ruppert (cassé) ---------- //
+    /*
+
+    std::vector<Point> points;
+    points.push_back(Point(0, 0, 0));
+    points.push_back(Point(1, 0, 0));
+    points.push_back(Point(2, 0.5, 0));
+    points.push_back(Point(1.5, 1.5, 0));
+    points.push_back(Point(0.5, 2, 0));
+    points.push_back(Point(-0.5, 2, 0));
+    points.push_back(Point(-0.5, 1, 0));
+
     std::vector<std::pair<int, int>> constraint_segments;
     for (int i = 0; i < points.size() - 1; i++)
         constraint_segments.push_back(std::make_pair(i, i + 1));
-    //constraint_segments.push_back(std::make_pair(0, points.size() - 1));
+    constraint_segments.push_back(std::make_pair(0, points.size() - 1));
 
-    _mesh.ruppert(constraint_segments, 24);
+    _mesh.ruppert(constraint_segments, 20);
 
-    //    _mesh.add_vertex(Vertex(0, Point(0, 0, 0)));
-    //    _mesh.add_vertex(Vertex(0, Point(1, 0, 0)));
-    //    _mesh.add_vertex(Vertex(0, Point(0.5, 0.5, 0)));
-    //_mesh.add_vertex(Vertex(1, Point(1.5, 0.25, 0)));
-    //_mesh.add_vertex(Vertex(2, Point(-0.5, 0.25, 0)));
-    //_mesh.add_vertex(Vertex(2, Point(0.5, -0.5, 0)));
-
-    //_mesh.add_face(Face(0, 1, 2, 1, 2, -1));
-    // _mesh.insert_point_2D(Point(0.0, 0.0, 0), false);
-    // _mesh.insert_point_2D(Point(1.0, 0.0, 0), false);
-    // _mesh.insert_point_2D(Point(0.5, 0.5, 0), false);
-    // _mesh.insert_point_2D(Point(-0.5, -0.3, 0), false);
-    // _mesh.insert_point_2D(Point(0.5, -0.3, 0), false);
-    //_mesh.add_face(Face(1, 3, 2, -1, 0, -1));
-    //_mesh.add_face(Face(0, 2, 4, -1, -1, 0));
-    //    _mesh.add_face(Face(0, 1, 2, 1, 2, 3));
-    //    _mesh.add_face(Face(1, 3, 2, -1, 0, 4));
-    //    _mesh.add_face(Face(0, 2, 4, -1, -1, 0));
-    //    _mesh.add_face(Face(5, 1, 0, 0, -1, 4));
-    //    _mesh.add_face(Face(5, 3, 1, 1, 3, -1));
-
-
-    //_mesh.insert_outside_convex_hull_2D(Point(0.5, -0.5, 0)); //5
-    //_mesh.insert_outside_convex_hull_2D(Point(-0.5, -0.6, 0));//6
-    //_mesh.insert_outside_convex_hull_2D(Point(1.0, -0.6, 0)); //7
-    //_mesh.insert_outside_convex_hull_2D(Point(2.0, 0, 0));    //8
-    //_mesh.insert_outside_convex_hull_2D(Point(-2.0, 0, 0));   //9
-    //_mesh.insert_outside_convex_hull_2D(Point(0.0, -2.0, 0)); //10
-    //_mesh.insert_outside_convex_hull_2D(Point(0.0, 2.0, 0));  //11
-    //_mesh.insert_outside_convex_hull_2D(Point(3.0, 3.0, 0));  //11
-
-    //_mesh.delaunayize_lawson();
-
-    //_mesh.face_split(0, _mesh.barycenter_of_face(0), true);
+    */
 }
 
 void GeometricWorld::precompute_mesh_curvature()

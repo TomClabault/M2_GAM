@@ -182,7 +182,7 @@ public:
 
     void save_as_obj(const std::string& filepath) const;
     void save_as_off(const std::string& filepath) const;
-    void insert_point_cloud(const std::string &filepath, float point_insertion_ratio = 1.0f);
+    void insert_point_cloud(const std::string &filepath, float point_insertion_ratio = 1.0f, bool do_delaunay = true);
 
     double face_area(const Face& face);
     Point barycenter_of_face(int face_index) const;

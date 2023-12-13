@@ -42,10 +42,10 @@ FORMS    += mainwindow.ui
 
 #---- Comment the following line on MacOS
 #---- Uncomment it on Windows and Linux
-#LIBS = -lGLU
+LIBS = -lGLU
 
 #---- Uncomment the following line on Windows
 #---- Comment it on Linux and MacOS
-LIBS += -lglu32
-LIBS += -lOpengl32
+#LIBS += -lglu32
+#LIBS += -lOpengl32
 
